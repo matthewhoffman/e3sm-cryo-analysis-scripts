@@ -25,11 +25,7 @@ lon_transect = [360-70, 360]
 #lon_transect = [360-40, 360-40]
 lat_N = -75 # northern limit of domain
 
-<<<<<<< HEAD
 fmesh = netCDF4.Dataset('../oEC60to30v3wLI60lev.171031.nc')
-=======
-fmesh = netCDF4.Dataset('oEC60to30v3wLI60lev.171031.nc')
->>>>>>> 48f305a... Add transects
 #fmesh=netCDF4.Dataset('/project/projectdirs/acme/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc')
 f = netCDF4.Dataset('/usr/projects/climate/mhoffman/e3sm/cryo-campaign-data/mpaso.hist.am.timeSeriesStatsMonthly.0070-01-01.nc')
 
@@ -114,11 +110,7 @@ plt.savefig('test_domain.png')
 #plt.close()
 
 fig = plt.figure()
-<<<<<<< HEAD
-plt.pcolor(np.divide(ymesh,1e3), zadj, data_trans_masked)#, vmin=-2.1, vmax=1.6, cmap = 'viridis')
-=======
 plt.pcolormesh(np.divide(ymesh,1e3), zmesh, data_trans_masked)#, vmin=-2.1, vmax=1.6, cmap = 'viridis')
->>>>>>> 48f305a... Add transects
 plt.plot(np.divide(dist_trans,1e3), zice[logical_trans], color = 'red', marker = '.', linestyle = '-')
 plt.plot(np.divide(dist_trans,1e3), -1.*zmax[logical_trans], color = 'black', marker = '.', linestyle = '-')
 plt.ylim((min(-1.*zmax[logical_trans]),0))
