@@ -38,6 +38,7 @@ nz = maxLevelCell
 
 # plot location
 fig = plt.figure(2, facecolor='w')
+plt.plot(yCell[idx], xCell[idx], 'r.')
 idx2 = np.nonzero(latCell<-60.0/180.0*pii)[0]
 plt.plot(yCell[idx2], xCell[idx2], 'k.')
 plt.plot(yCell[idx], xCell[idx], 'r.')
