@@ -22,7 +22,7 @@ path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF-
 #path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF.T62_oEC60to30v3wLI.cori-knl/run'
 #path='/global/cscratch1/sd/hoffman2/acme_scratch/edison/archive/20190306.A_WCYCL1850-DIB-ISMF_CMIP6.ne30_oECv3wLI.edison/ocn/hist'
 #path='/global/cscratch1/sd/hoffman2/acme_scratch/edison/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/run'
-years = np.arange(50,52,1)
+years = np.arange(60,70,1)
 months = np.arange(1,13,1)
 nt = len(years)*len(months)
 times = np.zeros((nt))
@@ -37,7 +37,7 @@ for yr in years:
 
    f=netCDF4.Dataset(path+'/mpaso.hist.am.timeSeriesStatsMonthly.{1:04d}-{2:02d}-01.nc'.format(path, yr, mo), 'r')
    temp = f.variables['timeMonthly_avg_seaIceFreshWaterFlux']
-   
+   print(temp.shape) 
    # get data
    fw_flux[t] = np.sum(np.multiply(temp[0,:],fmesh.variables['areaCell'][:]))/np.sum(fmesh.variables['areaCell'][:])
    
@@ -47,6 +47,9 @@ for yr in years:
 fig = plt.figure()#1, facecolor='w')
 plt.plot(times,fw_flux,'k')
 plt.ylabel('Sea Ice Freshwater flux (kg m^(-2) s^(-1))')
+plt.title('Sea Ice Freshwater flux (kg m^(-2) s^(-1))')
 plt.xlabel('Year')
 
-plt.savefig('SeaIceFreshwaterFlux_globalavg_monthlyavg_tseries.png')
+plt.savefig('SeaIceFreshwaterFlux_globalavg_monthlyavg_tseries_60-69.png',bbox_inches = "tight")
+#plt.xlim((69,71))
+#plt.savefig('SeaIceFreshwaterFlux_globalavg_monthlyavg_tseries_0-100.png')
