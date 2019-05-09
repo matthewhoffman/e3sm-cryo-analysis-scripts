@@ -12,23 +12,20 @@ from math import pi
 import weddell_mod as wed
 #from transects import transect
 
-var = 'T'
-lat_incr = np.arange(74,82.5,0.5)
-lon_incr = np.arange(30,2,70)
-lonW = [70, 0]
-latS = [82, 74]
+lat_incr = np.arange(74,83,2)#1)
+lon_incr = np.arange(30,40,2)#1)
 yr = 70
 mo = 1
 varlim = True
-for i in lat_incr:
-    wed.transect([i,i],lonW,'T',yr,mo,varlim)
-    wed.transect([i,i],lonW,'S',yr,mo,varlim)
-#    wed.transect([i,i],lonW,'rho',yr,mo,varlim)
-#    wed.transect([i,i],lonW,'u',yr,mo,varlim)
-#    wed.transect([i,i],lonW,'v',yr,mo,varlim)
-for i in lon_incr:
-    wed.transect(latS,[i,i],'T',yr,mo,varlim)
-    wed.transect(latS,[i,i],'S',yr,mo,varlim)
-#    wed.transect(latS,[i,i],'rho',yr,mo,varlim)
-#    wed.transect(latS,[i,i],'u',yr,mo,varlim)
-#    wed.transect(latS,[i,i],'v',yr,mo,varlim)
+yr_incr = np.arange(94,111,2)
+mo_incr = np.arange(1,2,3)
+run_incr = ['ISMF-noEAIS']
+var_incr = ['T','S','rho','u','v']
+
+for m in run_incr:
+    for j in yr_incr:
+        for k in mo_incr:
+            for i in lat_incr:
+                wed.transect([i,i],lonW,var_incr,j,k,varlim,run=m)
+            for i in lon_incr:
+                wed.transect(latS,[i,i],var_incr,j,k,varlim,run=m)
