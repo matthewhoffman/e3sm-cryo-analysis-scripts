@@ -31,7 +31,7 @@ fsz=(7,5)
 #idx = np.nonzero(np.logical_and(np.logical_and(latCell<-70.0/180.0*pii, latCell>-85.0/180.0*pii), np.logical_and(lonCell>310.0/360.0*2.0*pii, lonCell<350.0/360.0*2*pii)))[0]  #eastern weddell
 idx = np.nonzero( (latCell<-65.0/180.0*pii) * (latCell>-85.0/180.0*pii) * np.logical_or(lonCell>280.0/360.0*2.0*pii, lonCell<20.0/360.0*2*pii))[0]; size=6;  #entire weddell+
 idx = np.nonzero( (latCell<-60.0/180.0*pii) )[0]; size=1; sz=(14,10); #entire SO
-idx = np.nonzero( (latCell<-60.0/180.0*pii) * (latCell>-85.0/180.0*pii) * np.logical_or(lonCell>280.0/360.0*2.0*pii, lonCell<80.0/360.0*2*pii))[0]; size=1.4; fsz=(15,6)  # weddell to Amery 
+idx = np.nonzero( (latCell<-60.0/180.0*pii) * (latCell>-85.0/180.0*pii) * np.logical_or(lonCell>280.0/360.0*2.0*pii, lonCell<80.0/360.0*2*pii))[0]; size=1.4; fsz=(15,9)  # weddell to Amery 
 
 idxSill=210384-1 # filchner sill
 
@@ -50,7 +50,7 @@ nt = len(years)*len(months)
 
 
 fig = plt.figure(1, facecolor='w', figsize=fsz)
-nrow=2
+nrow=3
 ncol=2
 
 
@@ -84,15 +84,38 @@ for yr in years:
 
    f=netCDF4.Dataset('{0}/mpaso.hist.am.timeSeriesStatsMonthly.{1:04d}-{2:02d}-01.nc'.format(path, yr, mo), 'r')
    waterMassMask = waterMassCalc(f)
+   melt = f.variables['timeMonthly_avg_landIceFreshwaterFlux'][0,idx] / 910.0 * 3.14e7
    f.close()
+
+   f=netCDF4.Dataset('{0}/mpascice.hist.am.timeSeriesStatsMonthly.{1:04d}-{2:02d}-01.nc'.format(path, yr, mo), 'r')
+   iv=f.variables['timeMonthly_avg_iceVolumeCell'][0,idx]
+   f.close()
+
 
    if diffpath:
       f=netCDF4.Dataset('{0}/mpaso.hist.am.timeSeriesStatsMonthly.{1:04d}-{2:02d}-01.nc'.format(diffpath, yr, mo), 'r')
       waterMassMask2 = waterMassCalc(f)
+      melt2 = f.variables['timeMonthly_avg_landIceFreshwaterFlux'][0,idx] / 910.0 * 3.14e7
       f.close()
 
+      f=netCDF4.Dataset('{0}/mpascice.hist.am.timeSeriesStatsMonthly.{1:04d}-{2:02d}-01.nc'.format(diffpath, yr, mo), 'r')
+      iv2=f.variables['timeMonthly_avg_iceVolumeCell'][0,idx]
+      f.close()
 
-   axISW = fig.add_subplot(nrow, ncol, 1)
+   axM = fig.add_subplot(nrow, ncol, 1)
+   if diffpath:
+      sc1 = axM.scatter(yCell[idx], xCell[idx], s=size, c=(melt-melt2), vmin=-4.0, vmax=4.0, cmap='RdBu')
+   else:
+      sc1 = axM.scatter(yCell[idx], xCell[idx], s=size, c=(melt), vmin=0.0, vmax=5.0)
+      sc1.cmap.set_under('k')
+   i2 = np.nonzero(idx==idxSill)[0][0]
+   fig.colorbar(sc1, ax=axM)
+   axM.plot(yCell[idxSill], xCell[idxSill], 'rx')
+   axM.axis('equal')
+   axM.set_title("{}:\n year {}, mo {}; melt".format(path, yr, mo), fontsize=7)
+
+
+   axISW = fig.add_subplot(nrow, ncol, 3)
    iMass = 6
    #plt.scatter(yCell[idx], xCell[idx], s=10, c=T[0,idx,:].max(axis=1))
    if diffpath:
@@ -106,8 +129,21 @@ for yr in years:
    axISW.axis('equal')
    axISW.set_title("{}:\n year {}, mo {}; #layers of {}".format(path, yr, mo, wmLab[iMass]), fontsize=7)
 
+   axSI = fig.add_subplot(nrow, ncol, 6)
+   if diffpath:
+      sc1 = axSI.scatter(yCell[idx], xCell[idx], s=size, c=(iv-iv2), vmin=-0.3, vmax=0.3, cmap='RdBu')
+   else:
+      sc1 = axSI.scatter(yCell[idx], xCell[idx], s=size, c=(iv), vmin=0.0, vmax=2.5)
+      sc1.cmap.set_under('k')
+   i2 = np.nonzero(idx==idxSill)[0][0]
+   fig.colorbar(sc1, ax=axSI)
+   axSI.plot(yCell[idxSill], xCell[idxSill], 'rx')
+   axSI.axis('equal')
+   axSI.set_title("{}:\n year {}, mo {}; sea ice vol.".format(path, yr, mo), fontsize=7)
+
+
    
-   axSW = fig.add_subplot(nrow, ncol, 2)
+   axSW = fig.add_subplot(nrow, ncol, 4)
    if diffpath:
       sc2 = axSW.scatter(yCell[idx], xCell[idx], s=size, c=(np.logical_or(waterMassMask==3, waterMassMask==4)).sum(axis=1) - (np.logical_or(waterMassMask2==3, waterMassMask2==4)).sum(axis=1), vmin=-1*diffRange, vmax=diffRange, cmap='RdBu')
    else:
@@ -118,7 +154,7 @@ for yr in years:
    axSW.axis('equal')
    axSW.set_title("\nyear {}, mo {}; #layers of SW".format(yr, mo), fontsize=7)
 
-   axAASW = fig.add_subplot(nrow, ncol, 3)
+   axAASW = fig.add_subplot(nrow, ncol, 2)
    if diffpath:
       sc3 = axAASW.scatter(yCell[idx], xCell[idx], s=size, c=(waterMassMask==5).sum(axis=1) - (waterMassMask2==5).sum(axis=1), vmin=-1*diffRange, vmax=diffRange, cmap='RdBu')
    else:
@@ -129,7 +165,7 @@ for yr in years:
    axAASW.axis('equal')
    axAASW.set_title("\nyear {}, mo {}; #layers of AASW".format(yr, mo), fontsize=7)
 
-   axCDW = fig.add_subplot(nrow, ncol, 4)
+   axCDW = fig.add_subplot(nrow, ncol, 5)
    if diffpath:
       sc4 = axCDW.scatter(yCell[idx], xCell[idx], s=size, c=(np.logical_or(waterMassMask==1, waterMassMask==2)).sum(axis=1) - (np.logical_or(waterMassMask2==1, waterMassMask2==2)).sum(axis=1), vmin=-1*diffRange, vmax=diffRange, cmap='RdBu')
    else:
