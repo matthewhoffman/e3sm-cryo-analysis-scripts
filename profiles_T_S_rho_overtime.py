@@ -20,19 +20,24 @@ lonCell = fmesh.variables['lonCell'][:]
 xCell = fmesh.variables['xCell'][:]
 yCell = fmesh.variables['yCell'][:]
 depths = fmesh.variables['refBottomDepth'][:]
-z = np.zeros(depths.shape)
-z[0] = -0.5 * depths[0]
-z[1:] = -0.5 * (depths[0:-1] + depths[1:])
-#nz = len(z)
-
 #idx=67250-1
 #idx = np.argmin( (latCell-(-1.323514))**2 + (lonCell-5.672896)**2)  #122901-1
 #idx=198673-1
-idx=210384-1 # filchner sill
+idx = np.argmin( (latCell-(-77.75/180.0*pii))**2 + (lonCell-((360.0-36.15)/180.0*pii ))**2)  # Darelius 2016 Msouth
+#idx = np.argmin( (latCell-(-77.0083/180.0*pii))**2 + (lonCell-((360.0-34.05)/180.0*pii ))**2)  # Darelius 2016 Mnorth
+#idx=210384-1 # filchner sill
 print "idx=",idx
 
 maxLevelCell=fmesh.variables['maxLevelCell'][idx]
 nz = maxLevelCell
+
+bottomDepth = fmesh.variables['bottomDepth'][idx]
+layerThickness = fmesh.variables['layerThickness'][0, idx, :nz]
+thicknessSum = layerThickness.sum()
+thicknessCumSum = layerThickness.cumsum()
+zSurf = bottomDepth - thicknessSum
+zLayerBot = zSurf - thicknessCumSum
+z = zLayerBot + 0.5 * layerThickness
 
 
 
@@ -42,18 +47,19 @@ idx2 = np.nonzero(latCell<-60.0/180.0*pii)[0]
 plt.plot(yCell[idx2], xCell[idx2], 'k.')
 plt.plot(yCell[idx], xCell[idx], 'r.')
 
-#path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/run'
+path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/run'
 #path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF.T62_oEC60to30v3wLI.cori-knl/run'
 
 #path='/global/cscratch1/sd/kehoch/acme_scratch/cori-knl/20190304.GMPAS-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/run'
 #path='/global/cscratch1/sd/kehoch/acme_scratch/cori-knl/20190304.GMPAS-IAF.T62_oEC60to30v3wLI.cori-knl/run'
 
-path='/global/cscratch1/sd/hoffman2/acme_scratch/edison/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/run'
+#path='/global/cscratch1/sd/hoffman2/acme_scratch/edison/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/run'
 
 #path='/global/cscratch1/sd/hoffman2/acme_scratch/edison/archive/20190306.A_WCYCL1850-DIB-ISMF_CMIP6.ne30_oECv3wLI.edison/ocn/hist'
 #path='/global/cscratch1/sd/hoffman2/acme_scratch/edison/archive/20190306.A_WCYCL1850-DIB_CMIP6.ne30_oECv3wLI.edison/ocn/hist'
 
-years = np.arange(50,113,1)
+years = np.arange(50,153,1)
+years = np.arange(65,75,1)
 months = np.arange(1,13,1)
 nt = len(years)*len(months)
 times = np.zeros((nt,))
@@ -96,6 +102,7 @@ axT = fig.add_subplot(nrow, ncol, 1)
 plt.xlabel('year')
 plt.ylabel('temperature\n(deg. C)')
 plt.pcolor(times, z[:nz], Tdata, vmin=-2.1, vmax=1.6, cmap='nipy_spectral')#, vmin=-2.0, vmax=0.0)
+plt.pcolor(times, z[:nz], Tdata, vmin=-2.25, vmax=-1.5, cmap='RdBu_r')# Darelius 2016 approx.
 #axT.set_ylim((maxDepth, 0))
 plt.colorbar()
 #plt.contour(times, z[:nz], Tdata, [-1.8])
