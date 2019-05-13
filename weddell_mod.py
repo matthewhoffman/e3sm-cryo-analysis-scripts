@@ -15,8 +15,10 @@ import matplotlib.pyplot as plt
 import scipy.signal
 from matplotlib import cm
 from math import pi
+from matplotlib.colors import SymLogNorm
+from matplotlib import ticker
 
-def transect(latS,lonW,var_incr,yr,mo,varlim=False,run='ISMF-noEAIS'):# user-defined parameters
+def transect(latS,lonW,var_incr,yr,mo,varlim=False,run='ISMF-noEAIS',new=False):# user-defined parameters
 #lat_transect = [-78, -78]
 #lonW = [30,30]
 
@@ -51,8 +53,9 @@ def transect(latS,lonW,var_incr,yr,mo,varlim=False,run='ISMF-noEAIS'):# user-def
                 'timeMonthly_avg_potentialDensity',
                 'timeMonthly_avg_velocityZonal',
                 'timeMonthly_avg_velocityMeridional']
-    varmin = [-2.5,33.5,1027,-0.01,-0.01]
-    varmax = [1,34.4,1027.75,0.01,0.01]
+    varmin = [-2.5,34.2,1027,-0.05,-0.05]
+    varmax = [-0.5,34.6,1027.75,0.05,0.05]
+    #varmax = [1,34.4,1027.75,0.01,0.01]
     varcmap = ["viridis","viridis","viridis","coolwarm","coolwarm"]
     dvar = [0.1,0.01,0.01,.001,.001]
     dlat = 0.15 # at 30km resolution, distance between cells in latitude space
@@ -91,38 +94,51 @@ def transect(latS,lonW,var_incr,yr,mo,varlim=False,run='ISMF-noEAIS'):# user-def
             zbottom[:,i] = zbottom[:,i+1] + zh[:,i+1]
         zmid = zbottom + np.multiply(0.5,zh)
         zssh = zbottom[:,0] + zh[:,0]
-        # define line of constant latitude
-        if lat_transect[0] == lat_transect[1]:
-            lat_transect[0] = lat_transect[0] - dlat
-            lat_transect[1] = lat_transect[1] + dlat
-        if lon_transect[0] == lon_transect[1]:
-            print('define lon_transect')
-            lon_transect[0] = lon_transect[0] - dlon
-            lon_transect[1] = lon_transect[1] + dlon
         
         # define plot location
-        
-        # northern limit for subplots
-        logical_N = (latCell < lat_N*deg2rad) & (xCell > 0)
-        
-        # indices of transect
-        logical_trans = ( (latCell > lat_transect[0]*deg2rad) & 
-                          (latCell < lat_transect[1]*deg2rad) &
-                          (lonCell > lon_transect[0]*deg2rad) & 
-                          (lonCell < lon_transect[1]*deg2rad)   )
-        idx_trans = np.where(logical_trans)[0]
-        
-        idx1 = np.argmin(yCell[logical_trans])
-        temp = np.sqrt( np.square(yCell[logical_trans] - yCell[logical_trans][idx1]) + 
-                        np.square(xCell[logical_trans] - xCell[logical_trans][idx1])   )
-        idxsort_trans = idx_trans[temp.argsort()]
-        ysort_trans = yCell[idxsort_trans]
-        xsort_trans = xCell[idxsort_trans]
-        dist_trans = temp[temp.argsort()]
-        dd_trans = np.zeros(dist_trans.shape)
-        dd_trans[1:] = dist_trans[1:]-dist_trans[:-1]
-        temp = dist_trans[dd_trans<100e3] 
-        dmax = np.max(temp)# distance along transect
+        if new:
+            idx1 = np.argmin( np.square(yCell-lat_transect[0]) + 
+                              np.square(xCell-lon_transect[0])   )
+            idx2 = np.argmin( np.square(yCell-lat_transect[1]) + 
+                              np.square(xCell-lon_transect[1])   )
+            print(latCell[idx1])
+            print(latCell[idx2])
+            print(lonCell[idx1])
+            print(lonCell[idx2])
+            return
+        else:
+            # define line of constant latitude
+            if lat_transect[0] == lat_transect[1]:
+                lat_transect[0] = lat_transect[0] - dlat
+                lat_transect[1] = lat_transect[1] + dlat
+            if lon_transect[0] == lon_transect[1]:
+                print('define lon_transect')
+                lon_transect[0] = lon_transect[0] - dlon
+                lon_transect[1] = lon_transect[1] + dlon
+            # northern limit for subplots
+            logical_N = (latCell < lat_N*deg2rad) & (xCell > 0)
+            
+            # indices of transect
+            logical_trans = ( (latCell > lat_transect[0]*deg2rad) & 
+                              (latCell < lat_transect[1]*deg2rad) &
+                              (lonCell > lon_transect[0]*deg2rad) & 
+                              (lonCell < lon_transect[1]*deg2rad)   )
+            idx_trans = np.where(logical_trans)[0]
+            
+            idx1 = np.argmin(yCell[logical_trans])
+            temp = np.sqrt( np.square(yCell[logical_trans] - yCell[logical_trans][idx1]) + 
+                            np.square(xCell[logical_trans] - xCell[logical_trans][idx1])   )
+            idxsort_trans = idx_trans[temp.argsort()]
+            ysort_trans = yCell[idxsort_trans]
+            xsort_trans = xCell[idxsort_trans]
+            dist_trans = temp[temp.argsort()]
+            dd_trans = np.zeros(dist_trans.shape)
+            dd_trans[1:] = dist_trans[1:]-dist_trans[:-1]
+            temp = dist_trans[dd_trans<100e3] 
+            dmax = np.max(temp)# distance along transect
+       
+            #print(idxCell[logical_trans])
+            #print(temp)
         
         # create mesh variables for plotting
         ymesh,temp = np.meshgrid(dist_trans, depths);
@@ -195,6 +211,12 @@ def transect(latS,lonW,var_incr,yr,mo,varlim=False,run='ISMF-noEAIS'):# user-def
         if clevels[-1] < np.max(data_trans_zmasked[~mask].flatten()):
             clevels = np.append(clevels,np.max(data_trans_zmasked[~mask].flatten()))
         fig2 = plt.figure()
+#        if (var == 'u') | (var == 'v'):
+#            cntr2 = plt.tricontourf(np.divide(ymesh[~mask].flatten(),1e3), zmesh[~mask].flatten(), 
+#                                data_trans_zmasked[~mask].flatten(), 
+#                                levels=clevels,cmap=varcmap[vartitle.index(var)],
+#                                norm=SymLogNorm(linthresh = 0.001, linscale = 2, vmin = -0.5, vmax = 0.5))
+#        else:
         cntr2 = plt.tricontourf(np.divide(ymesh[~mask].flatten(),1e3), zmesh[~mask].flatten(), 
                                 data_trans_zmasked[~mask].flatten(), 
                                 levels=clevels,cmap=varcmap[vartitle.index(var)])

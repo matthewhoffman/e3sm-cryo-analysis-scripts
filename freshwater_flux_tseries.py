@@ -39,17 +39,17 @@ for yr in years:
    temp = f.variables['timeMonthly_avg_seaIceFreshWaterFlux']
    print(temp.shape) 
    # get data
-   fw_flux[t] = np.sum(np.multiply(temp[0,:],fmesh.variables['areaCell'][:]))/np.sum(fmesh.variables['areaCell'][:])
+   fw_flux[t] = np.sum(np.multiply(temp[0,:],fmesh.variables['areaCell'][:]))#/np.sum(fmesh.variables['areaCell'][:])
    
    f.close()
    t += 1
 
 fig = plt.figure()#1, facecolor='w')
 plt.plot(times,fw_flux,'k')
-plt.ylabel('Sea Ice Freshwater flux (kg m^(-2) s^(-1))')
-plt.title('Sea Ice Freshwater flux (kg m^(-2) s^(-1))')
+plt.ylabel('Sea Ice Freshwater flux (kg s^(-1))')
+plt.title('Sea Ice Freshwater flux (kg s^(-1))')
 plt.xlabel('Year')
 
-plt.savefig('SeaIceFreshwaterFlux_globalavg_monthlyavg_tseries_60-69.png',bbox_inches = "tight")
+plt.savefig('SeaIceFreshwaterFlux_globalsum_monthlyavg_tseries_60-69.png',bbox_inches = "tight")
 #plt.xlim((69,71))
 #plt.savefig('SeaIceFreshwaterFlux_globalavg_monthlyavg_tseries_0-100.png')
