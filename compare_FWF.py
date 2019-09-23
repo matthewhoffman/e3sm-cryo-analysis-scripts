@@ -42,23 +42,24 @@ size = 0.5
 
 
 
-fig1 = plt.figure(1, facecolor='w') # TS
-nrow=4
-ncol=2
 dir='/global/cscratch1/sd/hoffman2/acme_scratch/analysis/'
 flist=(
         'mpaso.hist.am.timeSeriesStatsMonthly.mean.0080-0089.G-IAF.nc',
         'mpaso.hist.am.timeSeriesStatsMonthly.mean.0020-0029.G-IAF-DIB.nc',
         'mpaso.hist.am.timeSeriesStatsMonthly.mean.0081-0089.G-IAF-ISMF.nc',
         'mpaso.hist.am.timeSeriesStatsMonthly.mean.0020-0029.G-IAF-DIB-ISMF.nc'
+        , 'mpaso.hist.am.timeSeriesStatsMonthly.mean.0020-0029.B-DIB.nc'
+        , 'mpaso.hist.am.timeSeriesStatsMonthly.mean.0020-0029.B-DIB-ISMF.nc'
         )
 
-# the run locations:
-#/global/cscratch1/sd/kehoch/acme_scratch/cori-knl/20190304.GMPAS-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist
 
+fig1 = plt.figure(1, facecolor='w') # TS
+nrow=len(flist)
+ncol=2
 
 fn=0
 for fname in flist:
+   print("\n----------")
    print(fname)
    f=netCDF4.Dataset(dir+fname, 'r')
    si=f.variables['timeMonthly_avg_seaIceFreshWaterFlux'][0,idx]
@@ -77,13 +78,10 @@ for fname in flist:
    else:
       print ("Couldn't find timeMonthly_avg_landIceFreshwaterFlux")
       iceshelf = si*0.0
-   sal=f.variables['timeMonthly_avg_activeTracers_salinity'][0,idx,0]
-   dens=f.variables['timeMonthly_avg_potentialDensity'][0,idx,0]
-   restTend=f.variables['timeMonthly_avg_salinitySurfaceRestoringTendency'][0,idx]
+#   sal=f.variables['timeMonthly_avg_activeTracers_salinity'][0,idx,0]
+#   dens=f.variables['timeMonthly_avg_potentialDensity'][0,idx,0]
+#   restTend=f.variables['timeMonthly_avg_salinitySurfaceRestoringTendency'][0,idx]
 
-   PE = rain + snow + evap
-   restoring = -1.0*restTend/sal*dens
-   total = PE + si + iceRunoff + iceshelf + restoring + iceberg + river
 
    AISFWF = river + iceRunoff + iceberg + iceshelf
    if fn==0:
@@ -108,6 +106,18 @@ for fname in flist:
    plt.colorbar()
 
    plt.draw()
+
+   # global stats
+   areaSum=areaCell[idx].sum()
+#   factor = 1.0/1000.0*3.14e7; print('regional budget terms (m/yr)')
+#   factor = areaSum/1.0e6/1000.0; print('regional budget terms (fwSv)')
+   factor = areaSum/1.0e12*3.14e7; print('* regional budget terms (Gt/yr):')
+   print("iceberg={}".format((iceberg*areaCell[idx]).sum()/areaSum*factor))
+   print("iceshelf={}".format((iceshelf*areaCell[idx]).sum()/areaSum*factor))
+   print("river={}".format((river*areaCell[idx]).sum()/areaSum*factor))
+   print("iceRunoff={}".format((iceRunoff*areaCell[idx]).sum()/areaSum*factor))
+   print("total={}".format((AISFWF*areaCell[idx]).sum()/areaSum*factor))
+
 
    f.close()
 
