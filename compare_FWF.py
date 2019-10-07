@@ -44,12 +44,13 @@ size = 0.5
 
 dir='/global/cscratch1/sd/hoffman2/acme_scratch/analysis/'
 flist=(
-        'mpaso.hist.am.timeSeriesStatsMonthly.mean.0080-0089.G-IAF.nc',
+        'newIAF.nc',
+#        'mpaso.hist.am.timeSeriesStatsMonthly.mean.0080-0089.G-IAF.nc',
         'mpaso.hist.am.timeSeriesStatsMonthly.mean.0020-0029.G-IAF-DIB.nc',
         'mpaso.hist.am.timeSeriesStatsMonthly.mean.0081-0089.G-IAF-ISMF.nc',
         'mpaso.hist.am.timeSeriesStatsMonthly.mean.0020-0029.G-IAF-DIB-ISMF.nc'
-        , 'mpaso.hist.am.timeSeriesStatsMonthly.mean.0020-0029.B-DIB.nc'
-        , 'mpaso.hist.am.timeSeriesStatsMonthly.mean.0020-0029.B-DIB-ISMF.nc'
+#        , 'mpaso.hist.am.timeSeriesStatsMonthly.mean.0020-0029.B-DIB.nc'
+#        , 'mpaso.hist.am.timeSeriesStatsMonthly.mean.0020-0029.B-DIB-ISMF.nc'
         )
 
 
@@ -101,8 +102,8 @@ for fname in flist:
    plt.title('diff'); plt.axis('off')
 #   rng = max(abs(AISFWF.min()), abs(AISFWF.max()))
 #   vmin = -1.0*rng; vmax=rng
-   rng = 0.000004
-   plt.scatter(yCell[idx], xCell[idx], s=size, c=AISFWF-refAISFWF, vmin=-1*rng, vmax=rng, cmap='RdBu')
+   rng = 0.000015
+   plt.scatter(yCell[idx], xCell[idx], s=size, c=AISFWF-refAISFWF, vmin=-1*rng, vmax=rng, cmap='bwr_r')
    plt.colorbar()
 
    plt.draw()
