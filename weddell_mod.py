@@ -10,19 +10,19 @@ import sys
 import os
 import csv
 import netCDF4
-import datetime
+#import datetime
 import numpy as np
 import matplotlib as pltlib
+from matplotlib import ticker,rc
 import matplotlib.pyplot as plt
 import scipy.signal
 import scipy.interpolate as interp
-from matplotlib import cm
-import cmocean
-from math import pi,sqrt,nan
+import matplotlib.cm as cmx
+import matplotlib.colors as colors
 from matplotlib.colors import LogNorm,Normalize
 from matplotlib.colors import SymLogNorm
-from matplotlib import ticker,rc
-from math import pi,atan,cos
+import cmocean
+from math import pi,sqrt,nan,atan,cos,floor,ceil
 import pandas
 
 global bad_data, bad_data2, deg2rad, lat_N, runname, runpath, meshpath, vartitle, varname, varmin, varmax, varcmap, surfvar, dvar
@@ -35,15 +35,30 @@ bad_data2 = 0.
 deg2rad  = pi/180.
 lat_N = -50 # northern limit of domain
     
-loc = ['frisEAcoast','fris','wedwang','trough_shelf_lat','trough_ice_lat']
+loc = ['frisEAcoast','fris','wedwang','trough_shelf','trough_ice','76S31W','75S31W']
 cells_trough_ice_lat = [33000,77033,11788,129098,49348] # index is value - 1, located just under ice
 cells_trough_shelf_lat = [165785,166563,130260,191987,85569] # index is value - 1, located just under ice
 #cells_trough_shelf_lat = [224105,165785,166563,130260,191987] # index is value - 1, located just under ice
 cells_trough_shelf2_lat = [152383,144943,67352] # index is value - 1, located just under ice
 trans_opt = ['' for i in loc]
-trans_opt[loc.index('trough_shelf_lat')] = 'coord'
-trans_opt[loc.index('trough_ice_lat')] = 'coord'
-loc_xmin = [0e6,0.2e6,360-55,360-35,360-46]
+#trans_opt[loc.index('trough_shelf')] = 'coord'
+#trans_opt[loc.index('trough_ice')] = 'coord'
+loctitle = ['' for i in loc]
+loctitle[loc.index('trough_shelf')] = 'trough, shelf break'
+loctitle[loc.index('trough_ice')] = 'trough, under ice shelf front'
+loctitle[loc.index('76S31W')] = 'M31W'
+loctitle[loc.index('75S31W')] = 'S4E'
+
+# location M31W from Ryan et al. 2017 JGR Oceans
+latS = 76 + 2.75/60
+lonW = 30 + 59.65/60
+
+latmin = -80
+latmax = -80
+lonmin = 360-48
+lonmax = 360
+
+loc_xmin = [-2e6,0.2e6,360-55,360-35,360-46]
 loc_xmax = [2.5e6,1.5e6,360-45,360-30,360-35]
 loc_ymin = [-2.5e6,-1.5e6,-74,-74.75,-78.1]
 loc_ymax = [0,-0.4e6,-65,-74.75,-78.1]
@@ -51,22 +66,33 @@ loc_ptsize = [40,80]
 
 legloc = 'upper left'
 bboxanchor = (0.0,-0.25)
-    
+
+season = ['summer','fall','winter','spring'] 
 summer_color = '#DAF5D0'#(11,0,15,4)
 fall_color = '#F2D0DC'#(0,14,9,5)
 winter_color = '#FFFFEB'#(0,0,8,0) 
 spring_color = '#D1D5EB'#(11,9,0,8) 
-x_summer = 0
-x_fall = (2/12) + (15/31)
-x_winter = (6/12) + (5/30)
-x_spring = (9/12) + (5/31)
+season_color = [summer_color,fall_color,winter_color,spring_color]
+t_season = [0,
+            (2 + (15/31))/12,
+            (6 + (5/30))/12,
+            (9 + (5/31))/12]
 
 set_dpi = 100
 
+runtitle = ['ISMF-control',
+           'ISMF-noEAIS',
+           'ISMF-3dGM']
 runname = ['ISMF',
            'ISMF-noEAIS',
            'ISMF-3dGM']
-runpath = ['/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist',
+run_color = ['cornflowerblue',
+             'k',
+             'darkorange']
+savepath_nersc = '/global/homes/c/cbegeman/weddell_output/'
+runpath = ['/global/cfs/cdirs/m3412/simulations/20190225.GMPAS-DIB-IAF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist',
+#/global/cfs/cdirs/m3412/simulations/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist',
+#           '/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist',
            '/global/cscratch1/sd/hoffman2/acme_scratch/edison/archive/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/ocn/hist',
            '/global/cscratch1/sd/sprice/acme_scratch/cori-knl/20190819.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl.testNewGM/archive/ocn/hist']
            #'/global/cscratch1/sd/hoffman2/acme_scratch/edison/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/run']
@@ -74,10 +100,25 @@ meshpath = ['/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60
             '/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
             '/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc']
 
-vartitle = ['z','T','S','rho','u','v','U','taux','tauy','tau','ssh','curl','zice']
-varlabel = ['Depth (m)','T (degC)','S (PSU)','$\rho$','Velocity +East (m/s)','Velocity +North (m/s)',
-            'Velocity magnitude (m/s)','Surface stress','Sea Surface Height (m)','curl']
+vartitle = ['z','T','S','rho','u','v','U','taux','tauy','tau',
+            'ssh','ssh_cmp','curl','zice','u_barotropic','u_baroclinic']
+varlabel = [str() for i in vartitle]
+varlabel[0:7] = ['Depth (m)','T (degC)','S (PSU)','Pot. Density (kg/m3)',
+                 'Velocity +East (m/s)','Velocity +North (m/s)',
+                 'Velocity magnitude (m/s)']
+varlabel[vartitle.index('T')] = 'T'
+varlabel[vartitle.index('S')] = 'S'
+varlabel[vartitle.index('rho')] = 'Pot density'
+varlabel[vartitle.index('tau')] = 'Surface stress'
+varlabel[vartitle.index('ssh')] = 'Sea Surface Height (m)'
+varlabel[vartitle.index('curl')] = 'curl'
+varlabel[vartitle.index('u_barotropic')] = 'u barotropic (m/s)'
+varlabel[vartitle.index('u_baroclinic')] = 'u baroclinic (m/s)'
+#varlabel[vartitle.index('u_barotropic')] = 'Velocity, barotropic (m/s)'
+#varlabel[vartitle.index('u_baroclinic')] = 'Velocity, baroclinic (m/s)'
 surfvar = ['taux','tauy','tau','ssh']
+
+# TODO fix assignment
 varname  = ['depth','timeMonthly_avg_activeTracers_temperature',
             'timeMonthly_avg_activeTracers_salinity',
             'timeMonthly_avg_potentialDensity',
@@ -87,16 +128,42 @@ varname  = ['depth','timeMonthly_avg_activeTracers_temperature',
             'timeMonthly_avg_windStressMeridional',
             '','timeMonthly_avg_ssh','landIceDraft']
 
-varmin = [str() for i in vartitle]
-varmax = [str() for i in vartitle]
 vartype = ['scalar' for i in vartitle]
 vartype[vartitle.index('u')] = 'velocity'
 vartype[vartitle.index('v')] = 'velocity'
 
 # variable axis limits 
 # choices for on the continental shelf
-varmin = [-1800,-2.5, 34.2, 1027.40, -0.02, -0.02, -0.02,-0.003,-0.003,-0.003,-5.]
-varmax = [-100,-0.5, 34.6, 1027.75,  0.02,  0.02, 0.02,0.003,0.003,0.003,-2.]
+varmin = [str() for i in vartitle]
+varmax = [str() for i in vartitle]
+varmin[vartitle.index('z')] = -1800
+varmax[vartitle.index('z')] = -100
+varmin[vartitle.index('T')] = -2.0
+varmax[vartitle.index('T')] = 1.0#-0.5
+varmin[vartitle.index('S')] = 33.5#34.2
+varmax[vartitle.index('S')] = 34.6
+varmin[vartitle.index('rho')] = 1027.20#.40
+varmax[vartitle.index('rho')] = 1027.75
+varmin[vartitle.index('u')] = -0.04
+varmax[vartitle.index('u')] =  0.04
+varmin[vartitle.index('v')] = -0.04
+varmax[vartitle.index('v')] =  0.04
+varmin[vartitle.index('U')] = -0.02
+varmax[vartitle.index('U')] =  0.02
+varmin[vartitle.index('tau')] = -0.003
+varmax[vartitle.index('tau')] =  0.003
+varmin[vartitle.index('taux')] = -0.003
+varmax[vartitle.index('taux')] =  0.003
+varmin[vartitle.index('tauy')] = -0.003
+varmax[vartitle.index('tauy')] =  0.003
+varmin[vartitle.index('ssh')] = -4
+varmax[vartitle.index('ssh')] = -1
+varmin[vartitle.index('ssh_cmp')] = -0.25
+varmax[vartitle.index('ssh_cmp')] =  0.25
+varmin[vartitle.index('u_barotropic')] = -0.0125
+varmax[vartitle.index('u_barotropic')] = 0.0125
+varmin[vartitle.index('u_baroclinic')] = -0.04
+varmax[vartitle.index('u_baroclinic')] = 0.04
 # choices for off the continental shelf
 #varmin = [-4000,-2, 33.5, 1027.25, -0.03, -0.02, -0.03,-0.003,-0.003,-0.003,-5.]
 #varmax = [-100, 2, 34.9, 1028   ,  0.03,  0.02, 0.03,0.003,0.003,0.003,0.]
@@ -110,13 +177,29 @@ dvar[vartitle.index('u')] = .001
 dvar[vartitle.index('v')] = .001
 
 # colormap corresponding to var
-varcmap = ['cmo.deep','cmo.thermal','cmo.haline','cmo.dense','cmo.balance','cmo.balance','cmo.speed','cmo.balance','cmo.balance','cmo.speed','cmo.deep','cmo.curl']
+varcmap = ['cmo.speed' for i in vartitle]
+varcmap[vartitle.index('z')] = 'cmo.deep'
+varcmap[vartitle.index('zice')] = 'cmo.deep'
+varcmap[vartitle.index('T')] = 'cmo.thermal'
+varcmap[vartitle.index('S')] = 'cmo.haline'
+varcmap[vartitle.index('rho')] = 'cmo.dense'
+varcmap[vartitle.index('u')] = 'cmo.balance'
+varcmap[vartitle.index('v')] = 'cmo.balance'
+varcmap[vartitle.index('u_barotropic')] = 'cmo.balance'
+varcmap[vartitle.index('u_baroclinic')] = 'cmo.balance'
+varcmap[vartitle.index('tau')] = 'cmo.curl'
+varcmap[vartitle.index('taux')] = 'cmo.balance'
+varcmap[vartitle.index('tauy')] = 'cmo.balance'
+varcmap[vartitle.index('U')] = 'cmo.speed'
+varcmap[vartitle.index('ssh')] = 'cmo.speed'
 
 # fontsize
 fs=16
+# linewidth
+lw1 = 1
 
 def TS_diagram(run,latS,lonW,startyr,endyr,z=0,zab=False,zall=True,plot_lines=True,
-               seasonal=False,runcmp=False,savepath='/global/homes/c/cbegeman/weddell_output/'):
+               seasonal=False,runcmp=False,savepath=savepath_nersc):
 
     years = np.arange(startyr,endyr+1,1)
     months = np.arange(1,13,1)
@@ -144,7 +227,7 @@ def TS_diagram(run,latS,lonW,startyr,endyr,z=0,zab=False,zall=True,plot_lines=Tr
         T2 = np.zeros((nt,nz)) 
         S2 = np.zeros((nt,nz)) 
     
-    placename = ( str(int(latS)) + 'S' + str(int(lonW)) + 'W' ) 
+    placename = ( str(round(latS)) + 'S' + str(round(lonW)) + 'W' ) 
     zmid = zmidfrommesh(fmesh,cellidx=[idx])
     if zab:
         zeval = np.add(zmid[0][-1],z)
@@ -180,11 +263,11 @@ def TS_diagram(run,latS,lonW,startyr,endyr,z=0,zab=False,zall=True,plot_lines=Tr
     if plot_lines:
         if seasonal:
             cNorm  = Normalize(vmin=0, vmax=1)
-            scalarMap = cm.ScalarMappable(norm=cNorm, cmap='twilight')
+            scalarMap = cmx.ScalarMappable(norm=cNorm, cmap='twilight')
             cbtitle = r'Time of Year'
         else:
             cNorm  = Normalize(vmin=startyr, vmax=endyr + 1)
-            scalarMap = cm.ScalarMappable(norm=cNorm, cmap='cmo.deep')
+            scalarMap = cmx.ScalarMappable(norm=cNorm, cmap='cmo.deep')
             cbtitle = r'Simulated Year'
         for i,ti in enumerate(times):
             if i > 0:
@@ -240,30 +323,39 @@ def TS_diagram(run,latS,lonW,startyr,endyr,z=0,zab=False,zall=True,plot_lines=Tr
 #   runcmp    if true, plot both entries in runname
 #   savepath  path to save plot images
 #----------------------------------------------------------------------
-def tseries1(run,varlist,latS,lonW,startyr,endyr,z=0,zab=False,year_overlay=False,
-             velocity_vector=False,runcmp=False,runcmpname='ISMF-noEAIS',
-             savepath='/global/homes/c/cbegeman/weddell_output/'):
+def tseries1(run_incr,varlist,startyr,endyr,z=0,
+             option = 'coord',placename = '',
+             latS=latS,lonW=lonW,zab=False,year_overlay=False,
+             velocity_vector=False,#runcmp=False,runcmpname='ISMF-noEAIS',
+             savepath=savepath_nersc):
 
-    years = np.arange(startyr,endyr+1,1)
+    years = np.arange(startyr,endyr,1)
     months = np.arange(1,13,1)
     nt = len(years)*len(months)
     times = np.zeros((nt,))
     
-    fmesh = netCDF4.Dataset(meshpath[runname.index(run)])
+    fmesh = netCDF4.Dataset(meshpath[runname.index(run_incr[0])])
     latCell = fmesh.variables['latCell'][:]
     lonCell = fmesh.variables['lonCell'][:]
     xCell = fmesh.variables['xCell'][:]
     yCell = fmesh.variables['yCell'][:]
-    locname = str(latS) + 'S' + str(lonW) + 'W'
-    latplt = -1.*latS*deg2rad
-    lonplt = (360.-lonW)*deg2rad
-    idx = np.argmin( (latCell-latplt)**2 + (lonCell-lonplt)**2)
+    if option == 'coord':
+        locname = str(latS) + 'S' + str(lonW) + 'W'
+        latplt = -1.*latS*deg2rad
+        lonplt = (360.-lonW)*deg2rad
+        idx = np.argmin( (latCell-latplt)**2 + (lonCell-lonplt)**2)
+        placename = ( str(round(latS)) + 'S' + str(round(lonW)) + 'W' ) 
+    elif option == 'by_index':
+        if placename == 'trough_shelf':
+            idx = cells_trough_shelf_lat[-1]-1 
+        elif placename == 'trough_ice':
+            idx = cells_trough_ice_lat[-1]-1 
+    
     # northern limit for subplots
     logical_N = (latCell < lat_N*deg2rad) & (xCell > 0)
     zmax     = np.multiply(-1,fmesh.variables['bottomDepth'][:])
     zice     = fmesh.variables['landIceDraft'][0,:]
     
-    placename = ( str(int(latS)) + 'S' + str(int(lonW)) + 'W' ) 
     if zab:
         m = 'mab'
     else:
@@ -287,81 +379,92 @@ def tseries1(run,varlist,latS,lonW,startyr,endyr,z=0,zab=False,year_overlay=Fals
         plt.savefig(savepath + 'bathy_' + placename + '.png',dpi=set_dpi)
         plt.close()
     
-    data = np.zeros((len(varlist),nt)) 
-    if runcmp:
-        data2 = np.zeros((len(varlist),nt)) 
+    data = np.zeros((len(run_incr),len(varlist),nt)) 
+    #if runcmp:
+    #    data2 = np.zeros((len(varlist),nt)) 
     
+    #if 'unormal' in varlist:
+    #    _,_,_,transect_angle = pick_transect(option='by_index',
+    #                                         run=run,transect_name = 'trough_shelf') 
     t=0
     for yr in years:
         for mo in months:
             times[t] = yr+(mo-1.0)/12.0
        
             datestr = '{0:04d}-{1:02d}'.format(yr, mo)
-            filename = '{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index(run)]) + datestr + '-01.nc'
-            f = netCDF4.Dataset(filename, 'r')
-            for i,var in enumerate(varlist):
-                if var not in surfvar:
-                    zmid = zmidfrommesh(fmesh,cellidx=[idx])
-                    if zab:
-                        zeval = np.add(zmid[0][-1],z)
-                    else:
-                        zeval = -1*z
-                    zidx = np.argmin(np.abs(np.subtract(zmid,zeval)))
- 
-                if var in surfvar:
-                    data[i,t] = f.variables[varname[vartitle.index(var)]][0,idx]
-                else:
-                    data[i,t] = f.variables[varname[vartitle.index(var)]][0,idx,zidx]
-            f.close()
-            if runcmp:
-                filename = '{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index(runcmpname)]) + datestr + '-01.nc'
+            for j,run in enumerate(run_incr):
+                filename = ('{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index(run)]) 
+                           + datestr + '-01.nc')
                 f = netCDF4.Dataset(filename, 'r')
                 for i,var in enumerate(varlist):
+                    if var not in surfvar:
+                        zmid = zmidfrommesh(fmesh,cellidx=[idx])
+                        if zab:
+                            zeval = np.add(zmid[0][-1],z)
+                        else:
+                            zeval = -1*z
+                        zidx = np.argmin(np.abs(np.subtract(zmid,zeval)))
+ 
                     if var in surfvar:
-                        data2[i,t] = f.variables[varname[vartitle.index(var)]][0,idx]
+                        data[j,i,t] = f.variables[varname[vartitle.index(var)]][0,idx]
                     else:
-                        data2[i,t] = f.variables[varname[vartitle.index(var)]][0,idx,zidx]
-                f.close()    
-            t=t+1
-    
-#    size = 5
-#    fig = plt.figure()
-#    sc1=plt.scatter(data[0,:],data[1,:],s=size,c=times,cmap='jet')
-#    fig.colorbar(sc1)
-#    plt.savefig(savepath + run + '_' + varlist[0] + varlist[1] + '_sc_' + placename + '_' + str(startyr) + '-' + str(endyr) + '.png')
-#    plt.close()
+                        data[j,i,t] = f.variables[varname[vartitle.index(var)]][0,idx,zidx]
+                        #if var == 'unormal':
+                f.close()
 
+            #if runcmp:
+            #    filename = '{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index(runcmpname)]) 
+            #               + datestr + '-01.nc'
+            #    f = netCDF4.Dataset(filename, 'r')
+            #    for i,var in enumerate(varlist):
+            #        if var in surfvar:
+            #            data2[i,t] = f.variables[varname[vartitle.index(var)]][0,idx]
+            #        else:
+            #            data2[i,t] = f.variables[varname[vartitle.index(var)]][0,idx,zidx]
+            #    f.close()    
+            t += 1
+    
     nrow=len(varlist)
     if velocity_vector:
         nrow += -2
     ncol=1
-    fig,axvar = plt.subplots(nrow,ncol,sharex=True)#,figsize=(width,nrow*width*plt_aspect))
-    for i in range(nrow):
-        #axvar[i] = plt.subplot(i,ncol,sharex=True,figsize=(width,nrow*width*plt_aspect))
+
+    fig,axvar = plt.subplots(nrow,ncol,sharex=True)
+    t_season.append(1)
+    for i in range(len(varlist)):
         if i == nrow-1:
             axvar[i].set(xlabel='year')
         axvar[i].set(ylabel=varlist[i])
-        ymin = np.min(data[i,:])
-        ymax = np.max(data[i,:])
+        ymin = np.min(data[:,i,:])
+        ymax = np.max(data[:,i,:])
         if year_overlay:
-            
-            axvar[i].fill([x_summer,x_summer,x_fall,x_fall],[ymin,ymax,ymax,ymin],
-                          facecolor=summer_color, alpha=0.5, linewidth='none')
+            for s,_ in enumerate(season): 
+                axvar[i].fill([t_season[s],t_season[s],t_season[s+1],t_season[s+1]],
+                              [ymin,ymax,ymax,ymin],
+                              facecolor=season_color[s], alpha=0.5, linewidth='none')
     
             for yr in years:
                 idx_time = (times>=yr) * (times < yr+1)
-                pc = axvar[i].plot(times[idx_time]-yr,data[i,idx_time],'-k',alpha=0.5)
-                if runcmp:
-                    pc2 = axvar[i].plot(times[idx_time]-yr,data2[i,idx_time],'-b',alpha=0.5)
+                for j,run in run_incr:
+                    pc = axvar[i].plot(times[idx_time]-yr,data[j,i,idx_time],
+                                       '-', color = run_color[runname.index(run)], alpha = 0.5)
+                #if runcmp:
+                #    pc2 = axvar[i].plot(times[idx_time]-yr,data2[i,idx_time],'-b',alpha=0.5)
         else:
             for yr in years:
-                axvar[i].fill([yr + x_summer,yr + x_summer,yr + x_fall, yr + x_fall],
-                              [ymin,ymax,ymax,ymin],
-                              facecolor=summer_color, alpha=0.5, linewidth=0)
+                for s,_ in enumerate(season): 
+                    axvar[i].fill([yr + t_season[s],yr + t_season[s],
+                                   yr + t_season[s+1], yr + t_season[s+1]],
+                                  [ymin,ymax,ymax,ymin],
+                                  facecolor=season_color[s], alpha=0.5, linewidth=0)
     
-            pc = axvar[i].plot(times,data[i,:],'-k',label = runname[runname.index(runcmpname)])
-            if runcmp:
-                pc2 = axvar[i].plot(times,data2[i,:],'-b', label = runname[runname.index(runcmpname)])
+            for j,run in enumerate(run_incr):
+                pc = axvar[i].plot(times,data[j,i,:],
+                                   '-', 
+                                   label = runtitle[runname.index(run)],
+                                   color = run_color[runname.index(run)])
+            #if runcmp:
+            #    pc2 = axvar[i].plot(times,data2[i,:],'-b', label = runname[runname.index(runcmpname)])
     if zab:
         m = 'mab'
     else:
@@ -369,10 +472,10 @@ def tseries1(run,varlist,latS,lonW,startyr,endyr,z=0,zab=False,year_overlay=Fals
 
     plt.legend(loc=legloc,bbox_to_anchor=bboxanchor)
 
-    filename = run + '_' 
-    if runcmp:
-       filename = filename + runcmpname + '_'
-    filename = filename + '_' + varlist[0] + varlist[1] + '_t_' + str(z) + m + '_' + placename + '_' + str(startyr) + '-' + str(endyr) 
+    #if runcmp:
+    #   filename = filename + runcmpname + '_'
+    filename = (run_incr[0] + '_' + varlist[0] + varlist[1] + '_t_' + str(z) + m + 
+                '_' + placename + '_' + str(startyr) + '-' + str(endyr) ) 
     print(filename)
     plt.savefig(savepath + '/' + filename + '.png',bbox_inches='tight')
     plt.close(fig)
@@ -403,7 +506,8 @@ def tseries1(run,varlist,latS,lonW,startyr,endyr,z=0,zab=False,year_overlay=Fals
             for ti,t in enumerate(times):
                 plt.plot([t,t+data[i,ti]],[0,data[i+1,ti]],'-k')
         plt.ylim([-1*Umax,Umax])
-        ax.set_aspect(plt_aspect/(2*Umax),adjustable='box')#plt.title(run + ': ' + locname)
+        ax.set_aspect(plt_aspect/(2*Umax),adjustable='box')
+        #plt.title(run + ': ' + locname)
         filename = run + '_U_t_' + str(z) + m + '_' + placename + '_' + str(startyr) + '-' + str(endyr) 
         print(filename)
         plt.savefig(savepath + '/' + filename + '.png')
@@ -422,64 +526,141 @@ def tseries1(run,varlist,latS,lonW,startyr,endyr,z=0,zab=False,year_overlay=Fals
 #   maxDepth  maximum depth of plots
 #   savepath  path to save plot images
 #----------------------------------------------------------------------
-def hovmoller(run,latS,lonW,startyr,endyr,
-              varlist = ['T','S','rho','u','v'],maxDepth=-800.0,
-              savepath='/global/homes/c/cbegeman/weddell_output/'):
+def hovmoller(run,startyr,endyr,
+              option = 'coord', coord=[latS,lonW],
+              transect_id = '',
+              varlist = ['T','S','rho','u','v'],zlim = [0,-9999],
+              limTrue = False,
+              input_filename = '',
+              savepath = savepath_nersc):
 
-    years = np.arange(startyr,endyr+1,1)
-    months = np.arange(1,13,1)
-    nt = len(years)*len(months)
-    times = np.zeros((nt,))
-    
-    fmesh = netCDF4.Dataset(meshpath[runname.index(run)])
-    latCell = fmesh.variables['latCell'][:]
-    lonCell = fmesh.variables['lonCell'][:]
-    xCell = fmesh.variables['xCell'][:]
-    yCell = fmesh.variables['yCell'][:]
-    locname = str(latS) + 'S' + str(lonW) + 'W'
-    latplt = -1.*latS*deg2rad
-    lonplt = (360.-lonW)*deg2rad
-    idx = np.argmin( (latCell-latplt)**2 + (lonCell-lonplt)**2)
-    
-    # calculate z from depths
-    zmid = zmidfrommesh(fmesh,zidx=[idx])
-    z = zmid[0,:]
-    nz = fmesh.variables['maxLevelCell'][idx]
+    if option == 'coord':
+        years = np.arange(startyr,endyr,1)
+        months = np.arange(1,13,1)
+        nt = len(years)*len(months)
+        times = np.zeros((nt,))
+        
+        fmesh = netCDF4.Dataset(meshpath[runname.index(run)])
+        latCell = fmesh.variables['latCell'][:]
+        lonCell = fmesh.variables['lonCell'][:]
+        xCell = fmesh.variables['xCell'][:]
+        yCell = fmesh.variables['yCell'][:]
+        locname = str(round(coord[0])) + 'S' + str(round(coord[1])) + 'W'
+        latplt = -1.*coord[0]*deg2rad
+        lonplt = (360.-coord[1])*deg2rad
+        idx = np.argmin( (latCell-latplt)**2 + (lonCell-lonplt)**2)
+        
+        # calculate z from depths
+        zmid = zmidfrommesh(fmesh,cellidx=[idx],vartype='scalar')
+        zh = fmesh.variables['layerThickness'][0,idx,:]
+        zbottom = np.subtract(zmid[0,:],0.5*zh)
+        z = np.zeros((len(zbottom)+1))
+        z[0] = zmid[0,0]+zh[0]
+        z[1:] = zbottom
+        zlim[0] = np.max(z)
+        zlim[1] = np.min(z)
+        z = z[0:fmesh.variables['maxLevelCell'][idx]]
+        nz = len(z)
 
-    data = np.zeros((len(varlist),nz,nt)) 
+        data = np.zeros((len(varlist),nz,len(times)))
+        
+        t=0
+        for yr in years:
+            for mo in months:
+                times[t] = yr+(mo-1.0)/12.0
+           
+                datestr = '{0:04d}-{1:02d}'.format(yr, mo)
+                input_filename = ('{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index(run)]) 
+                            + datestr + '-01.nc')
+                f = netCDF4.Dataset(input_filename, 'r')
+                for i,var in enumerate(varlist):
+                    data[i,1:,t] = f.variables[varname[vartitle.index(var)]][0,idx,:nz-1]
+                
+                f.close()
+                t += 1
+        
+        times = np.append(times,np.max(times)+(1/12))
+        start_time_idx = 0
+        end_time_idx = len(times)+1
+
+    elif option == 'transect':
+        #input_filename = run + '_transect_u_'+transect_id+'_' + str(startyr) + '-' + str(endyr)+'.txt'
+        if not os.path.exists(savepath + input_filename):
+            print(input_filename,' does not exist')
+            return
+        df = pandas.read_csv(savepath+input_filename)
+        #print(df.isnull().sum())
+        t = df['decyear'][:]
+        times = t.to_numpy(dtype='float32')
+        start_time_idx = np.argmin(np.abs(times - startyr))
+        end_time_idx = np.argmin(np.abs(times - endyr))
+        times = np.append(times,np.max(times)+(1/12))
+        # one more time point is needed to specify the right points of quadrilateral
+        
+        zbottom = np.zeros(200)
+        zcol = []
+        i = 0
+        # ztop is already written to specify the upper points of quadrilateral
+        for col in df.columns: 
+            if col[0] == '-':
+                zcol.append(col)
+                zbottom[i] = float(col)
+                i += 1
+        zbottom = zbottom[zbottom != 0]
+        zmid = zbottom[1:] - (zbottom[1:]-zbottom[:-1])/2
+        z = zbottom
+        nz = len(z)
+        data = np.zeros((len(varlist),nz,len(times)))
+        for i in range(start_time_idx,end_time_idx):
+            data[0,:,i] = df['u_barotropic_sum'][i]
+        for i,_ in enumerate(z):
+            data[1,i,:-1] = df[zcol[i][:]][:]
+        zlim[0] = np.max(z)
+        zlim[1] = np.min(z[~np.isnan(data[1,:,0])])
+        locname = transect_id
     
-    t=0
-    for yr in years:
-        for mo in months:
-            times[t] = yr+(mo-1.0)/12.0
-       
-            datestr = '{0:04d}-{1:02d}'.format(yr, mo)
-            filename = '{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index(run)]) + datestr + '-01.nc'
-            f = netCDF4.Dataset(filename, 'r')
-            for i,var in enumerate(varlist):
-                data[i,:,t] = f.variables[varname[vartitle.index(var)]][0,idx,:nz]
-            
-            f.close()
-            t += 1
-    
+    filename = ( run + '_hovmoller_' + varlist[0] + varlist[1] + '_' +
+                 locname + '_' + str(startyr) + '-' + str(endyr) )
     nrow=len(varlist)
     ncol=1
+    data[np.isnan(data)] = 0
+    #print('t = ',np.shape(times[start_time_idx:end_time_idx+1]))
+    #print('z = ',np.shape(z))
+    #print('data = ',np.shape(data[0,1:,start_time_idx:end_time_idx])) 
+    
     fig,axvar = plt.subplots(nrow,ncol,sharex=True)
-    #plt.title(run + ': ' + locname)
-    
     for i,var in enumerate(varlist):
-    
+        
+        cm = plt.get_cmap(varcmap[vartitle.index(var)]) 
+        if limTrue:
+            cNorm  = colors.Normalize(vmin=varmin[vartitle.index(var)], vmax=varmax[vartitle.index(var)])
+        elif var[0] == 'u' or var[0] == 'v':
+            vlim = np.max(np.abs(data[i,:,:]))
+            cNorm  = colors.Normalize(vmin=-1*vlim, vmax=vlim)
+        else:
+            cNorm  = colors.Normalize(vmin=np.min(np.abs(data[i,:,:])), 
+                                      vmax=np.max(np.abs(data[i,:,:])))
+        scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cm)
+ 
+        pc = axvar[i].pcolormesh(times[start_time_idx:end_time_idx+1], z, 
+                                 data[i,1:,start_time_idx:end_time_idx], 
+                                 cmap = cm, norm=cNorm) 
+        
         if i == nrow-1:
-            axvar[i].set(xlabel='year')
-        axvar[i].set(ylabel=var)
-        pc = axvar[i].pcolor(times, z[:nz], data[i,:], 
-                        vmin=varmin[vartitle.index(var)], vmax=varmax[vartitle.index(var)], 
-                        cmap=varcmap[vartitle.index(var)])
-        axvar[i].set_ylim((maxDepth, 0))
-        fig.colorbar(pc,ax=axvar[i])
+            axvar[i].set(xlabel='Simulated year')
+        axvar[i].set(ylabel=varlabel[vartitle.index('z')])
+        axvar[i].set_ylim((zlim))
+        axvar[i].invert_yaxis()
+        
+        cbar = fig.colorbar(scalarMap,ax=axvar[i])
+        cbar.set_label(varlabel[vartitle.index(var)])
+        
+        if i == 0:
+            print(runtitle[runname.index(run)] + ': ' + loctitle[loc.index(locname)])
+            axvar[i].set(title = runtitle[runname.index(run)] + ': ' + loctitle[loc.index(locname)])
     
-    filname = run + '_hovmoller_' + varlist[0] + varlist[1] + locname + '_' + str(startyr) + '-' + str(endyr)
-    plt.savefig(savepath + '/' + filename + '.png',dpi=set_dpi)
+    print('save plot: ',savepath + filename)
+    plt.savefig(savepath + filename + '.png')#,dpi=set_dpi)
     plt.close()
 
 #----------------------------------------------------------------------
@@ -500,7 +681,7 @@ def hovmoller(run,latS,lonW,startyr,endyr,
 #----------------------------------------------------------------------
 def profile(varlist,run,startyr,endyr,latS,lonW,
             maxDepth = -500.,runcmp=False,runcmpname='ISMF-noEAIS',mo = 0,
-            savepath='/global/homes/c/cbegeman/weddell_output/'):
+            savepath=savepath_nersc):
 
     varmin[vartitle.index('T')] = -2.2
     varmax[vartitle.index('T')] = 2
@@ -608,18 +789,25 @@ def profile(varlist,run,startyr,endyr,latS,lonW,
        filename = filename + '_' + runcmpname
     filename = filename + '_profiles_' + varlist[0] + varlist[1] + '_' + locname + '_' + datestr
     print(filename)
-    plt.savefig(savepath + '/' + filename + '.png',dpi=set_dpi)
+    plt.savefig(filename + '.png',dpi=set_dpi)
     plt.close()
 
+# PICK_TRANSECT
 # option choose transect by 'coord' or 'contour'
 #        if 'contour' need to provide latitude limits throgh latS and lonW
 #        if 'coord' only need to provide contour endpoints
 # contourvar  variable to choose contour from
 # contourval  value of contour
 # vartype 'scalar' or 'velocity
+#
+# Outputs:
+#    cellidx
+#    edgeidx
+#    dist:  distance between each cell center and the cell center of the first cell
+#    angle: mean orientation of transect from left to right
 def pick_transect(option='coord',lat=[-76,-76],lon=[360-32,360-32],run='ISMF',
                   vartype='velocity',transect_name='',scope_name = 'frisEAcoast',
-                  overwrite=False, savepath='/global/homes/c/cbegeman/weddell_output/'):
+                  overwrite=False, savepath=savepath_nersc,append=False):
     
     fmesh = netCDF4.Dataset(meshpath[runname.index(run)])
 
@@ -639,66 +827,185 @@ def pick_transect(option='coord',lat=[-76,-76],lon=[360-32,360-32],run='ISMF',
         #idxpt = fmesh.variables['indexToEdgeID'][:]
         xpt   = fmesh.variables['xEdge'][:]
         ypt   = fmesh.variables['yEdge'][:]
-    
+   
+    # the outcome of all these options is a list of x,y points with varying spacing and number 
     if option == 'coord':
-        transect_name = ( str(round(-1.*lat[0])) + 'S' + str(round(360-lon[0])) + 'W-' + 
-                  str(round(-1.*lat[1])) + 'S' + str(round(360-lon[1])) + 'W' )
-        
-        # constants
-        # width of band used to draw points from, the larger the width, the more zig-zagging the line
-        dlat = 0.2 # at 30km resolution, distance between cells in latitude space
-        dlon = 0.98
-        # define plot location
-        # define line of constant latitude
-        if lat[0] == lat[1]:
-            lat[0] = lat[0] - dlat
-            lat[1] = lat[1] + dlat
-        if lon[0] == lon[1]:
-            lon[0] = lon[0] - dlon
-            lon[1] = lon[1] + dlon
+        if transect_name == 'ryan_2017_trough':
+            lat = [latmin,latmax]
+            lon = [lonmin,lonmax]
+        else:
+            transect_name = (str(int(abs(lat[0]))) + 'S' + 
+                         str(int(abs(lon[0]-360))) + 'W-' + 
+                         str(int(abs(lat[1]))) + 'S' + 
+                         str(int(abs(lon[1]-360))) + 'W' )
+       #    dlat = 0.15 # at 30km resolution, distance between cells in deg
+       #    dlon = 0.98
+       #    # define plot location
+       #    # define line of constant latitude
+       #    if lat[0] == lat[1]:
+       #        lat[0] = (lat[0] - dlat) * deg2rad
+       #        lat[1] = (lat[1] + dlat) * deg2rad
+       #    if lon[0] == lon[1]:
+       #        lon[0] = (lon[0] - dlon) * deg2rad
+       #        lon[1] = (lon[1] + dlon) * deg2rad
+        #    # indices of transect
+        #    logical_trans = ( (latcell> lat[0]) & 
+        #                      (latcell< lat[1]) &
+        #                      (loncell> lon[0]) & 
+        #                      (loncell< lon[1])   )
+        #    #logical_trans = ( (latpt> lat[0]*deg2rad) & 
+        #    #                  (latpt< lat[1]*deg2rad) &
+        #    #                  (lonpt> lon[0]*deg2rad) & 
+        #    #                  (lonpt< lon[1]*deg2rad)   )
+        #    idx = np.argmin(np.square(latcell[logical_trans]-lat[0])+
+        #                    np.square(loncell[logical_trans]-lon[0]) )
+        #    # sort by distance from the point that is furthest south
+        #    # would be better to sort by distance from the point closest to latS[0],lonW[0]
+        #    #idx1 = np.argmin(ypt[logical_trans])
+        #    #dist = np.sqrt( np.square(ypt[logical_trans] - ypt[logical_trans][idx1]) + 
+        #    #                np.square(xpt[logical_trans] - xpt[logical_trans][idx1])   )
+        #    #idx = idx_trans[dist.argsort()]
+        #    idx1 = np.argmin(ycell[idx])
+        #    dist = np.sqrt( np.square(ycell[idx] - ycell[idx][idx1]) + 
+        #                    np.square(xcell[idx] - xcell[idx][idx1])   )
+        #    idx = idx[dist.argsort()]
+        #    #print('number of cells:',str(len(idx)))
+        #    print(latcell[idx])
+        #    #ddist[0] = 0
+        #    #ddist[1:] = dist[1:]-dist[:-1]
+        #    #idx_max, = np.where(ddist>100e3)
+        #    #if len(idx_max) > 0:
+        #    #    print('large discontinuity found in transect')
+        #    #    idx = idx[:idx_max[0]-1]# distance along transect
+        #    #    print('new number of cells:',str(len(idx)))
+        #elif select_cell == 'connecting':
+        #    # NOT FUNCTIONAL
 
-        # indices of transect
-        logical_trans = ( (latcell> lat[0]*deg2rad) & 
-                          (latcell< lat[1]*deg2rad) &
-                          (loncell> lon[0]*deg2rad) & 
-                          (loncell< lon[1]*deg2rad)   )
-        #logical_trans = ( (latpt> lat[0]*deg2rad) & 
-        #                  (latpt< lat[1]*deg2rad) &
-        #                  (lonpt> lon[0]*deg2rad) & 
-        #                  (lonpt< lon[1]*deg2rad)   )
-        idx = np.where(logical_trans)[0]
+        #    #dlat = 0.3 # at 30km resolution, distance between cells in deg
+        #    #dlon = 0.98
+        #    #    lat[0] = (lat[0] - dlat) * deg2rad
+        #    #    lat[1] = (lat[1] + dlat) * deg2rad
+        #    #if lon[0] == lon[1]:
+        #    #    lon[0] = (lon[0] - dlon) * deg2rad
+        #    #    lon[1] = (lon[1] + dlon) * deg2rad
+
+        #    # indices of transect
+        #    #logical_trans = ( (latcell> (lat[0] - dlon) * deg2rad) & 
+        #    #                  (latcell< (lat[0] + dlon) * deg2rad) &
+        #    #                  (loncell> (lon[0] - dlon) * deg2rad) & 
+        #    #                  (loncell< (lon[0] + dlon) * deg2rad) ) 
+        #    #idx1_candidates = np.where(logical_trans)[0]
+        #    #dist = np.sqrt( np.square(ycell[idx1_candidates] - 
+        #    #                          ycell[idx][idx1]) + 
+        #    #                np.square(xcell[idx1_candidates] - xcell[idx][idx1])   )
+        #    dist = np.sqrt(np.square(latcell-lat[0]) + 
+        #                   np.square(loncell-lon[0])) 
+        #    idx1 = np.argmin(dist) 
+        #    edgesOnCell = np.subtract(fmesh.variables['cellsOnCell'][idx,:],1)
+
+        #edgesOnCell = np.subtract(fmesh.variables['edgesOnCell'][idx,:],1)
         
-    elif option== 'contour':
+    elif option== 'zcontour':
         print('option ',option,' is not yet enabled') 
+    
     elif option == 'by_index':
         datestr = '{0:04d}-{1:02d}'.format(98,1)
-        filename = ('{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index('ISMF')]) 
-                   + datestr + '-01.nc')
-        f = netCDF4.Dataset(filename, 'r')
+        #filename = ('{0}/mpaso.hist.am.timeSeriesStatsMonthly.'
+        #            .format(runpath[runname.index(run)]) 
+        #            + datestr + '-01.nc')
+        #f = netCDF4.Dataset(filename, 'r')
         
-        dx = 5e3 
         if transect_name == 'trough_shelf':
-            idx = np.subtract(cells_trough_shelf_lat,1)
+            cellidx = np.subtract(cells_trough_shelf_lat,1)
         elif transect_name == 'trough_ice':
-            idx = np.subtract(cells_trough_ice_lat,1)
+            cellidx = np.subtract(cells_trough_ice_lat,1)
         else:
             print('transect name not matched')
+   
+        #uCell = f.variables['timeMonthly_avg_velocityZonal'][0,idx,:]
+        #vCell = f.variables['timeMonthly_avg_velocityMeridional'][0,idx,:]
+    
+    # TODO bit of code to identify cellidx for other cases    
+    # constants
+    # width of band used to draw points from, the larger the width, the more zig-zagging the line
+    #res = 
+    #if select_cell == 'within_halo':
+    #    for i,_ in enumerate(x_transect):
+    #        
+    #    logical_trans = ( (xcell > x_transect[i]-res) & 
+    #                      (xcell < lat[1]) &
+    #                      (ycell > lon[0]) & 
+    #                      (ycell < lon[1])   )
 
-        uCell = f.variables['timeMonthly_avg_velocityZonal'][0,idx,:]
-        vCell = f.variables['timeMonthly_avg_velocityMeridional'][0,idx,:]
-        edgesOnCell = np.subtract(fmesh.variables['edgesOnCell'][idx,:],1)
-        verticesOnCell = np.subtract(fmesh.variables['verticesOnCell'][idx,:],1)
-        verticesOnEdge = np.zeros((len(idx),7,2))
-        for i in range(len(idx)):
+        x_transect = fmesh.variables['xCell'][cellidx]
+        y_transect = fmesh.variables['yCell'][cellidx]
+        edgesOnCell = np.subtract(fmesh.variables['edgesOnCell'][cellidx,:],1)
+        verticesOnCell = np.subtract(fmesh.variables['verticesOnCell'][cellidx,:],1)
+        verticesOnEdge = np.zeros((len(cellidx),7,2))
+        for i in range(len(cellidx)):
             for j in range(7):
-                verticesOnEdge[i,j,:] = fmesh.variables['verticesOnEdge'][edgesOnCell[i,j],:]
-        #for i,temp in enumerate(idx[0:-1]):
+                verticesOnEdge[i,j,:] = (
+                  fmesh.variables['verticesOnEdge'][edgesOnCell[i,j],:])
+        
+        x0 = xcell[cellidx[0]]
+        y0 = ycell[cellidx[0]]
+        x1 = xcell[cellidx[-1]]
+        y1 = ycell[cellidx[-1]]
+        m = (y1 - y0)/(x1 - x0)
+        b = (x1*y0 - x0*y1)/(x1 - x0)
+        angle = atan(1/m) #fmesh.variables['angleEdge'][edgesOnCell[i,j]])
+        
+        idx = [] 
+        edgeidx = [] 
+        dx = 5e3 
+        for i,celli in enumerate(cellidx):
+            for j,edge in enumerate(edgesOnCell[i,:]):
+                ye = fmesh.variables['yEdge'][edge]
+                xe = fmesh.variables['xEdge'][edge]
+                ym = m*xe + b
+                xm = (ye - b)/m
+                #if ye > ym:
+                if ( (xe < xm - dx) and (ye > y0) and (ye < y1) ):
+                    #edge not in edgesOnCell[i+1,:]) ):
+                    edgeidx.append(edgesOnCell[i,j])
+                    idx.append(celli)
+        cellidx = idx
+        
+        # TODO replace above method with that below
+        # include all edges whose vertices have y-coordinates above or on a line 
+        # connecting neighboring cell centers
+#        for i,cell in enumerate(cellidx):
+#            if cell == cellidx[-1]:
+#                m = ( (y_transect[i] - y_transect[i-1]) /
+#                      (x_transect[i] - x_transect[i-1]) )
+#                b = ( (x_transect[i] * y_transect[i-1] - 
+#                       x_transect[i-1] * y_transect[i]) /
+#                      (x_transect[i] - x_transect[i-1]) )
+#            else:
+#                m = ( (y_transect[i+1] - y_transect[i]) /
+#                      (x_transect[i+1] - x_transect[i]) )
+#                b = ( (x_transect[i+1] * y_transect[i] - 
+#                       x_transect[i] * y_transect[i+1]) /
+#                      (x_transect[i+1] - x_transect[i]) )
+#            for j,edge in enumerate(edgesOnCell[i,:]):
+#                x2 = fmesh.variables['xVertex'][verticesOnEdge[i,j,:]
+#                y2 = fmesh.variables['yVertex'][verticesOnEdge[i,j,:]
+#                if ( ( y2[0] >= m*x2[0] + b) and 
+#                     ( y2[1] >= m*x2[1] + b) and
+#                     ( x2[1] >= m*x2[1] + b) and
+#                     ( edge not in edgesOnCell[i+1,:]) ):
+#                    edgeidx.append(edge)
+                
+
         #    print('idxcell',str(i),':',str(ycell[i]),',',str(xcell[i]))
         #    shared_edges = []
         #    shared_verts = []
-        #    vert1 = fmesh.variables['verticesOnCell'][i,:]
-        #    vert2 = fmesh.variables['verticesOnCell'][i+1,:]
-        #    edges1 = fmesh.variables['edgesOnCell'][i,:]
+        #    xEdge = fmesh.variables['xEdge'][edgesOnCell[i,:]]))
+        #    edge1 = np.argmin(xEdge)
+        #       fmesh.variables[]verticesOnCell[i,:] = (
+        #    vert1 = verticesOnCell[i,:]
+        #    vert2 = verticesOnCell[i+1,:]
+        #    edges1 = edgesOnCell[i,:]
         #    print('xedge:',str(fmesh.variables['xEdge'][edges1-1]))
         #    edges2 = fmesh.variables['edgesOnCell'][i+1,:]
         #    for j in vert1:
@@ -724,50 +1031,35 @@ def pick_transect(option='coord',lat=[-76,-76],lon=[360-32,360-32],run='ISMF',
             #if (edges[6] in idx) and (edges[5] in idx):
             #   print('found duplicate')
             #   idx[idx.index(edges[5])] = nan
-    
-        
    
-    # sort by distance from the point that is furthest south
-    # would be better to sort by distance from the point closest to latS[0],lonW[0]
-    #idx1 = np.argmin(ypt[logical_trans])
-    #dist = np.sqrt( np.square(ypt[logical_trans] - ypt[logical_trans][idx1]) + 
-    #                np.square(xpt[logical_trans] - xpt[logical_trans][idx1])   )
-    #idx = idx_trans[dist.argsort()]
-    idx1 = np.argmin(ycell[idx])
-    dist = np.sqrt( np.square(ycell[idx] - ycell[idx][idx1]) + 
-                    np.square(xcell[idx] - xcell[idx][idx1])   )
-    idx = idx[dist.argsort()]
-    #print('number of cells:',str(len(idx)))
-    #ddist[0] = 0
-    #ddist[1:] = dist[1:]-dist[:-1]
-    #idx_max, = np.where(ddist>100e3)
-    #if len(idx_max) > 0:
-    #    print('large discontinuity found in transect')
-    #    idx = idx[:idx_max[0]-1]# distance along transect
-    #    print('new number of cells:',str(len(idx)))
-    x1 = xcell[idx[-1]]
-    x0 = xcell[idx[0]]
-    y1 = ycell[idx[-1]]
-    y0 = ycell[idx[0]]
-    m = (y1 - y0)/(x1 - x0)
-    b = (x1*y0 - x0*y1)/(x1 - x0)
-    angle = atan(1/m) #fmesh.variables['angleEdge'][edgesOnCell[i,j]])
-    edgeidx = []
-    for i in range(len(idx)):
-        for j in range(6):
-            ye = fmesh.variables['yEdge'][edgesOnCell[i,j]]
-            xe = fmesh.variables['xEdge'][edgesOnCell[i,j]]
-            ym = m*xe + b
-            xm = (ye - b)/m
-            #if ye > ym:
-            if (xe < xm - dx) and (ye > y0) and (ye < y1):
-            #if xe > xm + dx:
-                edgeidx.append(edgesOnCell[i,j])
-    #idx1 = np.argmin(fmesh.variables['yEdge'][edgeidx])
-    #dist = np.sqrt( np.square(fmesh.variables['yEdge'][edgeidx] - fmesh.variables['yEdge'][idx1]) + 
-    #                np.square(fmesh.variables['xEdge'][edgeidx] - fmesh.variables['xEdge'][idx1]) )
+    #idx1 = np.argsort(fmesh.variables['yEdge'][edgeidx])
     #edgeidx = edgeidx[np.argsort(fmesh.variables['xEdge'][edgeidx])]
+    dist = np.sqrt( np.square(fmesh.variables['yEdge'][edgeidx] - fmesh.variables['yEdge'][edgeidx[0]]) + 
+                    np.square(fmesh.variables['xEdge'][edgeidx] - fmesh.variables['xEdge'][edgeidx[0]]) )
     
+        # show profile line across cells
+        #if not os.path.exists(savepath + 'bathy_' + placename + '.png'):
+        #    fig1 = plt.figure()
+        #    plt.plot(yCell[logical_N],     xCell[logical_N], 'k.')
+        #    plt.plot(yCell[logical_trans], xCell[logical_trans], 'r.')
+        #    plt.axis('equal')
+        #    plt.savefig('grid_' + placename + '_' + datestr + '.png',dpi=set_dpi)
+        #    plt.close()
+        #    
+        #    fig = plt.figure()
+        #    cntr1 = plt.tricontourf(yCell[logical_N].flatten(), xCell[logical_N].flatten(), 
+        #                            zmax[logical_N].flatten(), 20, cmap="viridis")
+        #    plt.plot(yCell[logical_N],     xCell[logical_N], 'o', color = 'white', 
+        #             markersize = 4, fillstyle = 'none')#, alpha = 0.5)
+        #    cntr = plt.tricontour(yCell[logical_N].flatten(), xCell[logical_N].flatten(), 
+        #                           zice[logical_N].flatten(), [-10], colors = 'k')
+        #    plt.plot(yCell[idxsort_trans], xCell[idxsort_trans], 'k-')
+        #    plt.axis('equal')
+        #    cbar = plt.colorbar(cntr1)
+        #    cbar.set_label('Depth (m)')    
+        #    plt.savefig(savepath + 'bathy_' + placename + '.png',dpi=set_dpi)
+        #    plt.close()
+        
     # show profile line across cells
     if (not os.path.exists(savepath + 'bathy_' + transect_name + '.png')) or overwrite:
         # northern limit for subplots
@@ -781,22 +1073,33 @@ def pick_transect(option='coord',lat=[-76,-76],lon=[360-32,360-32],run='ISMF',
                       (xcell < loc_xmax[loc.index(scope_name1)]) & 
                       (ycell > loc_ymin[loc.index(scope_name1)]) & 
                       (ycell < loc_ymax[loc.index(scope_name1)]) )
+        
         idx_scope = np.where(logical_N)[0]
-        zmax = np.multiply(-1.,fmesh.variables['bottomDepth'][idx_scope])
-        #icemask  = fmesh.variables['landIceMask'][logical_N]
-        zice     = fmesh.variables['landIceDraft'][0,idx_scope]
+        zmax_scope = np.multiply(-1.,fmesh.variables['bottomDepth'][idx_scope])
+        icemask_scope  = fmesh.variables['landIceMask'][0,idx_scope]
+        #zice_scope     = fmesh.variables['landIceDraft'][idx_scope]
+        ycell_scope = ycell[idx_scope]
+        xcell_scope = xcell[idx_scope]
+        
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        cntr1 = plt.scatter(ycell[idx_scope],xcell[idx_scope],s=loc_ptsize[loc.index(scope_name)], c=zmax)
+        cntr1 = plt.scatter(ycell_scope,xcell_scope,
+                            s=loc_ptsize[loc.index(scope_name)], c=zmax_scope)
         #cntr1 = plt.tricontourf(ycell[idx_scope],xcell[idx_scope],zmax, 20, cmap="viridis")
         #plt.plot(ycell[idx_scope],xcell[idx_scope], 'o', color = 'white', 
         #         markersize = ms, fillstyle = 'none', alpha = 0.5)
-        cntr = plt.tricontour(ycell[idx_scope],xcell[idx_scope],zice, [-10], colors = 'k')
-        #plt.plot(ycell[idx], xcell[idx], 'k.',markersize=ms)
+        #cntr = plt.tricontour(ycell_scope,xcell_scope,
+        #                      zice, [-10], colors = 'k',linewidth=lw1)
+        plt.plot(ycell_scope[icemask_scope==1], xcell_scope[icemask_scope==1],
+                 'o', color = 'white', 
+                 markersize = 5*ms, fillstyle = 'none')
+        plt.plot(ycell[cellidx], xcell[cellidx],
+                 'o', color = 'black', 
+                 markersize = ms, fillstyle = 'none')
         #plt.plot([y0,y1],[x0,x1], 'k-')
 
         cNorm  = Normalize(vmin=-1*pi, vmax=1*pi)
-        scalarMap = cm.ScalarMappable(norm=cNorm, cmap='jet')
+        scalarMap = cmx.ScalarMappable(norm=cNorm, cmap='jet')
         #for i in range(len(idx)):
         #    for j in range(6):
         #        colorVal = scalarMap.to_rgba(fmesh.variables['angleEdge'][edgesOnCell[i,j]])
@@ -808,7 +1111,7 @@ def pick_transect(option='coord',lat=[-76,-76],lon=[360-32,360-32],run='ISMF',
                            fmesh.variables['yVertex'][fmesh.variables['verticesOnEdge'][k,1]-1]],
                           [fmesh.variables['xVertex'][fmesh.variables['verticesOnEdge'][k,0]-1],
                            fmesh.variables['xVertex'][fmesh.variables['verticesOnEdge'][k,1]-1]],
-                          'k-')#marker='None',linestyle='-','k')
+                          'b-',linewidth=lw1)#marker='None',linestyle='-','k')
                 #print(fmesh.variables['yVertex'][verticesOnEdge[i,j,1]])
                 #print(fmesh.variables['xVertex'][verticesOnEdge[i,j,1]])
                 #xv = [fmesh.variables['yVertex'][verticesOnEdge[i,j,0]],
@@ -827,17 +1130,17 @@ def pick_transect(option='coord',lat=[-76,-76],lon=[360-32,360-32],run='ISMF',
         cbar = plt.colorbar(cntr1)
         #cbar = plt.colorbar(sc)
         cbar.set_label(r'Depth (m)')    
-        print('save ','bathy_' + transect_name )
-        plt.savefig(savepath + 'bathy_' + transect_name)
+        print('save ','bathy_' + transect_name + '2')
+        plt.savefig(savepath + 'bathy_' + transect_name + '2')
         plt.close()
     
-    print('number of edges:',str(len(edgeidx))) 
-    return edgeidx,angle
+    return cellidx, edgeidx, dist, angle
 
 
 #----------------------------------------------------------------------
 # FLUXGATE
-# -- 
+# -- Computes volumetric flux perpendicular to transect line and saves
+#    output to a csv file
 #
 # Inputs:
 #   transect_id
@@ -852,62 +1155,76 @@ def pick_transect(option='coord',lat=[-76,-76],lon=[360-32,360-32],run='ISMF',
 #----------------------------------------------------------------------
 # TODO add option to define fluxgate across topography contour
 # TODO add separate function to select transect points, which are then inputs to this function and others
-def fluxgate(transect_id, yrrange = [50,51], 
+def fluxgate(transect_id, yrrange = [50,51], morange = [1,13],
              run='ISMF', runcmp = False, runcmpname='ISMF-noEAIS',
              overwrite=False, plotting=False, 
-             savepath='/global/homes/c/cbegeman/weddell_output/'):
+             savepath=savepath_nersc):
     
     # import variables from file
     fmesh = netCDF4.Dataset(meshpath[runname.index(run)])
     
-    idx,transect_angle = pick_transect(option='by_index',#trans_opt[loc.index(transect_id)],
+    cellidx, idx, dist, transect_angle = pick_transect(option='by_index',
+                                    run=run,transect_name = transect_id,overwrite=overwrite) 
                         #lon = [loc_xmin[loc.index(transect_id)],loc_xmax[loc.index(transect_id)]],
                         #lat = [loc_ymin[loc.index(transect_id)],loc_ymax[loc.index(transect_id)]],
-                        transect_name = transect_id,overwrite=overwrite) 
     #nLevels = fmesh.dimensions['nVertLevels'][:]
     #cell1 = np.subtract(fmesh.variables['cellsOnEdge'][idx,0],1)
     #cell2 = np.subtract(fmesh.variables['cellsOnEdge'][idx,1],1)
-    dc    = fmesh.variables['dcEdge'][idx] # distance between cells that saddle an edge
+    dv    = fmesh.variables['dvEdge'][idx] # length of edge between vertices
     angle = fmesh.variables['angleEdge'][idx] # angle in rad an edge normal vector makes with eastward
     
+    zh   = fmesh.variables['layerThickness'][0,cellidx,:]
+    zmax = np.multiply(-1,fmesh.variables['bottomDepth'][cellidx])
+    zice = fmesh.variables['landIceDraft'][0,cellidx]
     cell1 = np.subtract(fmesh.variables['cellsOnEdge'][idx,0],1)
     cell2 = np.subtract(fmesh.variables['cellsOnEdge'][idx,1],1)
-    zh1   = fmesh.variables['layerThickness'][0,cell1,:]
-    zh2   = fmesh.variables['layerThickness'][0,cell2,:]
-    zh = (zh1 + zh2)/2
-    zmax1 = fmesh.variables['bottomDepth'][cell1]
-    zmax2   = fmesh.variables['bottomDepth'][cell2]
-    zmax = (zmax1 + zmax2)/-2
-    zice1     = fmesh.variables['landIceDraft'][0,cell1]
-    zice2     = fmesh.variables['landIceDraft'][0,cell2]
-    zice = zice1
-    for i in range(len(cell1)):
-       zice[i] = np.max([zice1[i],zice2[i]])
-    depths = zmidfrommesh(fmesh,cellidx=idx,vartype='velocity')
-
+    #zh1   = fmesh.variables['layerThickness'][0,cell1,:]
+    #zh2   = fmesh.variables['layerThickness'][0,cell2,:]
+    #zh = (zh1 + zh2)/2
+    #zmax1 = fmesh.variables['bottomDepth'][cell1]
+    #zmax2   = fmesh.variables['bottomDepth'][cell2]
+    #zmax = (zmax1 + zmax2)/-2
+    #zice1     = fmesh.variables['landIceDraft'][0,cell1]
+    #zice2     = fmesh.variables['landIceDraft'][0,cell2]
+    #zice = zice1
+    #for i in range(len(cell1)):
+    #   zice[i] = np.max([zice1[i],zice2[i]])
+    #depths = zmidfrommesh(fmesh,cellidx=idx,vartype='velocity')
+    zmid = zmidfrommesh(fmesh,cellidx=cellidx,vartype='scalar')
+    zbottom = np.subtract(zmid,0.5*zh)
+    ztop = np.add(zbottom,zh)
     #dangle = angle - (transect_angle+(pi/2))
+    
+    # Create depth vector for reporting cross-transect averaged
+    # baroclinic velocities
+    zu,idx_unique = np.unique(zbottom,return_index = True)
+    temp_idx = np.argsort(-1*zu)
+    zu = zu[temp_idx]
+    zh_temp = zh.flatten()[idx_unique]
+    zuh = zh_temp[temp_idx]
     
     # angle the normal edge velocity makes with transect
     dangle = angle - transect_angle
     dangle[dangle>180] += -360
-    #print(np.divide(transect_angle,pi/180))
-    #print(np.divide(angle,pi/180))
-    #print(np.divide(dangle,pi/180))
     edgeSigns = np.divide(dangle,abs(dangle))
-    #print(edgeSigns)
  
-    row,col = np.shape(depths)
+    #mask = np.zeros(np.shape(depths),dtype=bool)
+    #for i,~ in enumerate(mask):
+    #    if (depths[i] > zmax[i]) and (depths[i] < zice[i]):
+    #        mask[i] = True
+    row,col = np.shape(zmid)
     mask = np.zeros((row,col),dtype=bool)
     for i in range(row):
         for j in range(col):
-            if (depths[i,j] > zmax[i]) and (depths[i,j] < zice[i]):
+            if (zmid[i,j] > zmax[i]) and (zmid[i,j] < zice[i]):
                 mask[i,j] = True
-    area = np.multiply(depths,0)
-    F = np.multiply(depths,0)
+    F = np.multiply(zmid,0)
+    
     # compute face area
+    area = np.multiply(zmid,0)
     for i in range(row):
         for j in range(col):
-            area[i,j] = edgeSigns[i] * zh[i,j] * dc[i]
+            area[i,j] = zh[i,j] * dv[i]
 
     if plotting: 
         # create mesh variables for plotting
@@ -925,14 +1242,17 @@ def fluxgate(transect_id, yrrange = [50,51],
         #bathyfill = np.append(bathymax,zmax)
         #bathyfill = np.append(bathyfill,bathymax)
         temp,ymesh= np.meshgrid(np.zeros((col,)),n)
-        
+    
+    # initialize text files for saving output    
     if overwrite:
         flag='w+'
     else:
         flag='a+'
     
-    table_file = open(savepath+'transect_flux_'+transect_id+'_'+str(yrrange[0])+'-'+str(yrrange[1])+'.txt',flag)
+    table_file = open(savepath+run+'_transect_flux_'+transect_id+'_'+str(yrrange[0])+'-'+str(yrrange[1])+'.txt',flag)
+    table_file_u = open(savepath+run+'_transect_u_'+transect_id+'_'+str(yrrange[0])+'-'+str(yrrange[1])+'.txt',flag)
     wr = csv.writer(table_file,dialect='excel')
+    wru = csv.writer(table_file_u,dialect='excel')
     if runcmp:
         wr.writerow(['year','month','decyear',
                  run+'_flux_pos',run+'_flux_neg',run+'_flux_total',
@@ -940,35 +1260,136 @@ def fluxgate(transect_id, yrrange = [50,51],
     else:
         wr.writerow(['year','month','decyear',
                  run+'_flux_pos',run+'_flux_neg',run+'_flux_total'])
+   
+    col_headings = ['year','month','decyear','F_barotropic','F_baroclinic_pos',
+                 'u_barotropic_sum','u_baroclinic_pos',zu[0]+zuh[0]]
+    for i in zu:
+        col_headings.append(i) 
+    wru.writerow(col_headings)
     
     for yr in range(yrrange[0],yrrange[1]):
-        for mo in range(1,13):
+        for mo in range(morange[0],morange[1]):
             times = (yr+(mo-1.0)/12.0)
 
             datestr = '{0:04d}-{1:02d}'.format(yr, mo)
             filename = ('{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index(run)]) 
                        + datestr + '-01.nc')
+            print(run,': ',filename)
+            
             if not os.path.exists(filename):
+              print('does not exist')
               continue
+
             f = netCDF4.Dataset(filename, 'r')
+            ssh   = f.variables['timeMonthly_avg_ssh'][0,cellidx]
             if 'timeMonthly_avg_normalTransportVelocity' in f.variables.keys():
-              u= f.variables['timeMonthly_avg_normalTransportVelocity'][0,idx,:]
+              u= (f.variables['timeMonthly_avg_normalTransportVelocity'][0,idx,:])
             elif 'timeMonthly_avg_normalVelocity' in f.variables.keys():
-              u= f.variables['timeMonthly_avg_normalVelocity'][0,idx,:]
+              u= (f.variables['timeMonthly_avg_normalVelocity'][0,idx,:])
               if 'timeMonthly_avg_normalGMBolusVelocity' in f.variables.keys():
-                u += f.variables['timeMonthly_avg_normalGMBolusVelocity'][0,idx,:]
+                u += (f.variables['timeMonthly_avg_normalGMBolusVelocity'][0,idx,:])
             else:
               raise KeyError('no appropriate normalVelocity variable found')
-            F = np.multiply(np.multiply(area,u),m3ps_to_Sv)
+            for i,_ in enumerate(idx):
+                u[i,:] = edgeSigns[i]*u[i,:]
+            F = np.multiply(area,u)
             
             if runcmp:
                 filename = ('{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index(runcmpname)])
                             + datestr + '-01.nc')
                 f2 = netCDF4.Dataset(filename, 'r')
                 u2 = f2.variables['timeMonthly_avg_normalVelocity'][0,idx,:]
+                for i,_ in enumerate(idx):
+                    u2[i,:] = edgeSigns[i]*u2[i,:]
                 F2 = np.multiply(np.multiply(area,u2),m3ps_to_Sv)
             else:
                 F2 = [0]
+            
+            # Compute barotropic/baroclinic velocities column-wise
+            u_barotropic = np.zeros(np.shape(u))
+            u_baroclinic= np.zeros(np.shape(u))
+            column_flux = np.zeros(np.shape(cellidx))
+            column_area = np.zeros(np.shape(cellidx))
+            for i,_ in enumerate(idx):
+                column_flux[i] = np.sum(F[i,:]*mask[i,:])
+                column_area[i] = np.sum(np.multiply(area[i,:],mask[i,:]))
+                u_barotropic[i,:] = np.divide(column_flux[i],
+                                              np.add(column_area[i],1e-10))
+                u_baroclinic[i,:] = np.subtract(u[i,:],
+                                                u_barotropic[i,:])
+            u_barotropic = np.multiply(u_barotropic,mask)
+            u_baroclinic = np.multiply(u_baroclinic,mask)
+            F_barotropic = np.multiply(u_barotropic,area) 
+            F_baroclinic = np.multiply(u_baroclinic,area)
+            
+            # check that F_baroclinic_sum = 0
+            for i,_ in enumerate(idx):
+                if abs(np.sum(F_baroclinic[i,:])) > 1e-10:
+                    print('Column-integrated baroclinic flux exceeds threshold')
+            
+            # compute cross-transect averaged barotropic and baroclinic velocities
+            u_baroclinic_zsum = np.zeros((np.shape(zu)))
+            width_zsum = np.zeros((np.shape(zu)))
+            for i,_ in enumerate(cellidx):
+                for j,_ in enumerate(zmid):
+                    for k,_ in enumerate(zu):
+                        if (zbottom[i,j] >= zu[k]) and (zbottom[i,j] < zu[k]+zuh[k]):
+                            u_baroclinic_zsum[k] += u_baroclinic[i,j] * dv[i]
+                            width_zsum[k] += dv[i]
+            u_baroclinic_zsum = np.divide(u_baroclinic_zsum,width_zsum)
+
+            F_barotropic_sum = np.sum(F_barotropic)
+            F_baroclinic_sum = np.sum(F_baroclinic)
+            F_baroclinic_mag = np.sqrt(np.sum(np.square(F_baroclinic)))
+            F_baroclinic_pos = np.sum(F_baroclinic[F_baroclinic>0])
+            area_sum = np.sum(area)
+            # the depth-averaged velocities
+            u_barotropic_sum = F_barotropic_sum/area_sum
+            u_baroclinic_sum = F_baroclinic_pos/area_sum # TODO change to mag or pos
+            print('F_barotropic_sum = ',F_barotropic_sum)
+            print('F_baroclinic_sum = ',F_baroclinic_sum)
+            print('F_baroclinic_mag = ',F_baroclinic_mag)
+            print('F_baroclinic_pos = ',F_baroclinic_pos)
+            print('u_barotropic_sum = ',u_barotropic_sum)
+            print('u_baroclinic_zsum = ',u_baroclinic_zsum)
+            row_entries = [yr,mo,times,
+                           F_barotropic_sum * m3ps_to_Sv,
+                           F_baroclinic_pos * m3ps_to_Sv,
+                           u_barotropic_sum, u_baroclinic_sum,
+                           0]
+            for i in u_baroclinic_zsum:
+                row_entries.append(i)
+            wru.writerow(row_entries)
+            
+            F = F[mask]
+            Fpos = np.sum(F[F>0])
+            Fneg = np.sum(F[F<0])
+            Fsum = np.sum(F)
+            if runcmp:
+                F2 = F2[mask]
+                F2pos = np.sum(F2[F2>0])
+                F2neg = np.sum(F2[F2<0])
+                F2sum = np.sum(F2)
+            else:
+                F2pos = 0
+                F2neg = 0
+                F2sum = 0
+            if runcmp:
+                wr.writerow([yr,mo,times,
+                             Fpos*m3ps_to_Sv,
+                             Fneg*m3ps_to_Sv,
+                             Fsum*m3ps_to_Sv,
+                             F2pos*m3ps_to_Sv,
+                             F2neg*m3ps_to_Sv,
+                             F2sum*m3ps_to_Sv])
+            else:
+                wr.writerow([yr,mo,times,
+                             Fpos*m3ps_to_Sv,
+                             Fneg*m3ps_to_Sv,
+                             Fsum*m3ps_to_Sv])
+            
+            # in a separate text file, write 1st row depths, subsequent rows per time
+            
             if plotting: 
                 ssh      = f.variables['timeMonthly_avg_ssh'][0,cell1]
                 fig2 = plt.figure()
@@ -1020,33 +1441,14 @@ def fluxgate(transect_id, yrrange = [50,51],
                 print(filename) 
                 plt.close()
 
-            F_barotropic = np.multiply(np.multiply(area,np.mean(u)),m3ps_to_Sv)
-            F_baroclinic = np.subtract(F,F_barotropic)
-            
-            F = F[mask]
-            F_barotropic = F_barotropic[mask]
-            F_baroclinic = F_baroclinic[mask]
-            Fpos = np.sum(F[F>0])
-            Fneg = np.sum(F[F<0])
-            Fsum = np.sum(F)
-            F_barotropic_sum = np.sum(F_barotropic)
-            F_baroclinic_sum = np.sum(F_baroclinic[F_baroclinic>0])
-            if runcmp:
-                F2 = F2[mask]
-                F2pos = np.sum(F2[F2>0])
-                F2neg = np.sum(F2[F2<0])
-                F2sum = np.sum(F2)
-            else:
-                F2pos = 0
-                F2neg = 0
-                F2sum = 0
-            wr.writerow([yr,mo,times,Fpos,Fneg,Fsum,F2pos,F2neg,F2sum])
 
 #----------------------------------------------------------------------
 # TRANSECT
 # -- plot variable in color vs. depth across a profile in lon or lat
+# -- if runcmp, plot difference in two fields
 #
 # Inputs:
+#   pick_option  'by_index'
 #   latS      latitude range, always in Southern Hem, positive, 
 #             vector of length 2, real 
 #   lonW      longitude range, always in Western Hem, positive,
@@ -1064,210 +1466,267 @@ def fluxgate(transect_id, yrrange = [50,51],
 #   ops       operations to perform on variables in varlist
 #   savepath  path to save plot images
 #----------------------------------------------------------------------
-def transect(latS, lonW, varlist, yr, mo, varlim = False, zscale = 'linear', 
-             run='ISMF', runcmp = False, new = False, ops = [''],
-             savepath='/global/homes/c/cbegeman/weddell_output/'):
+def transect(pick_option, yr_incr, mo_incr, varlist, 
+             transect_name = '',plot_transect=False,
+             lat=[latmin,latmax],lon=[lonmin,lonmax], 
+             varlim = False, normal = False, zscale = 'linear', 
+             run='ISMF', runcmp = False, runcmpname = 'ISMF-noEAIS',
+             overwrite = False, ops = [''],
+             save_transect_mean = False,
+             savepath=savepath_nersc):
+    
     if ops[0] == '':
        ops = ['' for i in varlist]
-    placename = ( str(latS[0]) + 'S' + str(lonW[0]) + 'W-' + 
-                  str(latS[1]) + 'S' + str(lonW[1]) + 'W' )
     
-    lat_transect = np.multiply(-1.,latS)
-    lon_transect = np.subtract(360,lonW)
+    if pick_option == 'coord':
+        transect_name = (str(int(abs(lat[0]))) + 'S' + 
+                         str(int(abs(lon[0]-360))) + 'W-' + 
+                         str(int(abs(lat[1]))) + 'S' + 
+                         str(int(abs(lon[1]-360))) + 'W' )
     
+    # create mesh variables for plotting
     fmesh = netCDF4.Dataset(meshpath[runname.index(run)])
-    datestr = '{0:04d}-{1:02d}'.format(yr, mo)
-    filename = '{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index(run)]) + datestr + '-01.nc'
-    f = netCDF4.Dataset(filename, 'r')
-    if runcmp:
-        filename = '{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index('ISMF-noEAIS')]) + datestr + '-01.nc'
-        f2 = netCDF4.Dataset(filename, 'r')
+    cellidx,edgeidx,dist,angle = pick_transect(option = pick_option,
+                                       lat = lat, lon = lon, 
+                                       transect_name = transect_name,
+                                       overwrite = plot_transect) 
+    dist = np.divide(dist,1e3) 
+    depths   = fmesh.variables['refBottomDepth'][:]
 
+    _,ymesh  = np.meshgrid(depths, dist)
+    
     # constants
-    dlat = 0.15 # at 30km resolution, distance between cells in latitude space
-    dlon = 0.98
+    #dlat = 0.15 # at 30km resolution, distance between cells in latitude space
+    #dlon = 0.98
     
     # import variables from file
-    latCell  = fmesh.variables['latCell'][:]
-    lonCell  = fmesh.variables['lonCell'][:]
-    idxCell  = fmesh.variables['indexToCellID'][:]
-    xCell    = fmesh.variables['xCell'][:]
-    yCell    = fmesh.variables['yCell'][:]
-    depths   = fmesh.variables['refBottomDepth'][:]
-    kmax     = fmesh.variables['maxLevelCell'][:]
-    zmax     = np.multiply(-1,fmesh.variables['bottomDepth'][:])
-    zh       = fmesh.variables['layerThickness'][0,:]
-    icemask  = fmesh.variables['landIceMask'][:]
-    zice     = fmesh.variables['landIceDraft'][0,:]
-    ssh      = f.variables['timeMonthly_avg_ssh'][0,:]
-    for var in varlist:
-        if os.path.exists(savepath + run + '_' + var + '_' + placename + '_' + 
-                          datestr + '_lim' + str(varlim)+'.png'):
-            print(run + '_' + var + '_' + placename + '_' + datestr + '_lim' + str(varlim) + ' exists')
-            #continue
-    
-        data     = f.variables[varname[vartitle.index(var)]][0,:]
-        if runcmp: 
-            data2 = f2.variables[varname[vartitle.index(var)]][0,:]
-        
-        # define plot location
-        if new:
-            idx1 = np.argmin( np.square(yCell-lat_transect[0]) + 
-                              np.square(xCell-lon_transect[0])   )
-            idx2 = np.argmin( np.square(yCell-lat_transect[1]) + 
-                              np.square(xCell-lon_transect[1])   )
-            return
-        else:
-            # define line of constant latitude
-            if lat_transect[0] == lat_transect[1]:
-                lat_transect[0] = lat_transect[0] - dlat
-                lat_transect[1] = lat_transect[1] + dlat
-            if lon_transect[0] == lon_transect[1]:
-                lon_transect[0] = lon_transect[0] - dlon
-                lon_transect[1] = lon_transect[1] + dlon
-            # northern limit for subplots
-            logical_N = (latCell < lat_N*deg2rad) & (xCell > 0)
-            
-            # indices of transect
-            logical_trans = ( (latCell > lat_transect[0]*deg2rad) & 
-                              (latCell < lat_transect[1]*deg2rad) &
-                              (lonCell > lon_transect[0]*deg2rad) & 
-                              (lonCell < lon_transect[1]*deg2rad)   )
-            idx_trans = np.where(logical_trans)[0]
-            
-            idx1 = np.argmin(yCell[logical_trans])
-            temp = np.sqrt( np.square(yCell[logical_trans] - yCell[logical_trans][idx1]) + 
-                            np.square(xCell[logical_trans] - xCell[logical_trans][idx1])   )
-            idxsort_trans = idx_trans[temp.argsort()]
-            ysort_trans = yCell[idxsort_trans]
-            xsort_trans = xCell[idxsort_trans]
-            dist_trans = temp[temp.argsort()]
-            dd_trans = np.zeros(dist_trans.shape)
-            dd_trans[1:] = dist_trans[1:]-dist_trans[:-1]
-            idx2, = np.where(dd_trans>100e3) 
-            if len(idx2) > 0:
-                dmax = dist_trans[idx2[0]-1]# distance along transect
-            else:
-                dmax = np.max(dist_trans)
-       
-        # calculate z from depths
-        zmid = zmidfrommesh(fmesh,cellidx=idxsort_trans,vartype=vartype[vartitle.index(var)])
-        # create mesh variables for plotting
-        ymesh,temp = np.meshgrid(dist_trans, depths);
-        #zmesh = np.transpose(zmid[idxsort_trans])
-        zmesh = np.transpose(zmid)
-        data_trans = np.transpose(data[idxsort_trans,:])
-        data_trans_masked = np.transpose(data[idxsort_trans,:])
-        data_trans_zmasked = np.transpose(data[idxsort_trans,:])
-        #zssh = zbottom[:,0] + zh[:,0]
-        # Ideally, mask both bad data and ice shelf
-        #data_trans_masked = np.ma.masked_where( (data_trans < bad_data) |
-        #                                        (zmesh > zicemesh), data_trans)
-        data_trans_masked = np.ma.masked_where( (data_trans < bad_data) |
-                (data_trans == bad_data2), data_trans)
-        for idx,i in enumerate(idxsort_trans):
-            data_trans_zmasked[:,idx] = np.ma.masked_where( 
-                    (zmid[idx,:] < zmid[idx,kmax[i]-1]), data[i,:])
-        mask = np.ma.getmask(data_trans_masked)
-        
-        if ops[varlist.index(var)] == 'barotropic':
-            print('data shape = '+np.shape(data_trans_zmasked[~mask])) 
-        # plots
-        
-        # show profile line across cells
-        if not os.path.exists(savepath + 'bathy_' + placename + '.png'):
-            fig1 = plt.figure()
-            plt.plot(yCell[logical_N],     xCell[logical_N], 'k.')
-            plt.plot(yCell[logical_trans], xCell[logical_trans], 'r.')
-            plt.axis('equal')
-            plt.savefig('grid_' + placename + '_' + datestr + '.png',dpi=set_dpi)
-            plt.close()
-            
-            fig = plt.figure()
-            cntr1 = plt.tricontourf(yCell[logical_N].flatten(), xCell[logical_N].flatten(), 
-                                    zmax[logical_N].flatten(), 20, cmap="viridis")
-            plt.plot(yCell[logical_N],     xCell[logical_N], 'o', color = 'white', 
-                     markersize = 4, fillstyle = 'none')#, alpha = 0.5)
-            cntr = plt.tricontour(yCell[logical_N].flatten(), xCell[logical_N].flatten(), 
-                                   zice[logical_N].flatten(), [-10], colors = 'k')
-            plt.plot(yCell[idxsort_trans], xCell[idxsort_trans], 'k-')
-            plt.axis('equal')
-            cbar = plt.colorbar(cntr1)
-            cbar.set_label('Depth (m)')    
-            plt.savefig(savepath + 'bathy_' + placename + '.png',dpi=set_dpi)
-            plt.close()
-        
-        yline = np.divide(dist_trans,1e3)
-        yfill = np.append(yline[0],yline)
-        yfill = np.append(yfill,yline[-1])
-        sshfill = np.append(0,ssh[idxsort_trans])
-        sshfill = np.append(sshfill,0)
-        bathymax = np.min(zmax[idxsort_trans]) - 100
-        bathyfill = np.append(bathymax,zmax[idxsort_trans])
-        bathyfill = np.append(bathyfill,bathymax)
-        
-        
-        clevels = np.arange(varmin[vartitle.index(var)], 
-                            varmax[vartitle.index(var)],
-                            dvar[vartitle.index(var)]   )
-        if clevels[0] > np.min(data_trans_zmasked[~mask].flatten()):
-            clevels = np.append(np.min(data_trans_zmasked[~mask].flatten()),clevels)
-        if clevels[-1] < np.max(data_trans_zmasked[~mask].flatten()):
-            clevels = np.append(clevels,np.max(data_trans_zmasked[~mask].flatten()))
-        
-        fig2 = plt.figure()
-        if runcmp:
-            cmap1 = "cmo.balance"
-        else:
-            cmap1 = varcmap[vartitle.index(var)]
-        if runcmp:
-            data1_trans_zmasked = data_trans_zmasked
-            data2_trans_zmasked = np.transpose(data2[idxsort_trans,:])
-            data_trans_zmasked = np.subtract(data1_trans_zmasked,data2_trans_zmasked)
-            cntr2 = plt.tricontourf(np.divide(ymesh[~mask].flatten(),1e3), 
-                                    np.abs(zmesh[~mask].flatten()), 
-                                    data_trans_zmasked[~mask].flatten(), 
-                                    levels=clevels,cmap=cmap1)
-        else:
-            cntr2 = plt.tricontourf(np.divide(ymesh[~mask].flatten(),1e3), 
-                                    np.abs(zmesh[~mask].flatten()), 
-                                    data_trans_zmasked[~mask].flatten(), 
-                                    levels=clevels,cmap=cmap1)
-        plt.plot(yline, np.abs(ssh[idxsort_trans]), color = 'black', marker = '.', linestyle = '-')
-        plt.plot(np.divide(ymesh[~mask].flatten(),1e3), np.abs(zmesh[~mask].flatten()), 
-                 '.', color = 'white', markersize = 1)#, fillstyle = 'none')
-        plt.fill(yfill, np.abs(sshfill), c = 'white', alpha = 1)
-        plt.plot(np.divide(dist_trans,1e3), np.abs(zmax[idxsort_trans]), color = 'black', marker = '.', linestyle = '-')
-        plt.fill(yfill, np.abs(bathyfill), c = 'grey', alpha = 1)
-        ax = plt.gca()
-        if varlim:
+    #latCell  = fmesh.variables['latCell'][idx]
+    #lonCell  = fmesh.variables['lonCell'][idx]
+    #idxCell  = fmesh.variables['indexToCellID'][idx]
+    #xCell    = fmesh.variables['xCell'][:]
+    #yCell    = fmesh.variables['yCell'][:]
+    kmax     = fmesh.variables['maxLevelCell'][cellidx]
+    zmax     = np.multiply(-1,fmesh.variables['bottomDepth'][cellidx])
+    #zh       = fmesh.variables['layerThickness'][0,:]
+    #icemask  = fmesh.variables['landIceMask'][idx]
+    zice     = fmesh.variables['landIceDraft'][0,cellidx]
+    bathymax = np.min(zmax) - 100
+   
+    # TODO only used for plotting, ignore if not plotting 
+    yfill = np.append(dist[0],dist)
+    yfill = np.append(yfill,dist[-1])
+    bathyfill = np.append(bathymax,zmax)
+    bathyfill = np.append(bathyfill,bathymax)
+
+    for yr in yr_incr:
+        for mo in mo_incr:
+            datestr = '{0:04d}-{1:02d}'.format(yr, mo)
+            filename = ('{0}/mpaso.hist.am.timeSeriesStatsMonthly.'
+                        .format(runpath[runname.index(run)]) 
+                        + datestr + '-01.nc')
+            f = netCDF4.Dataset(filename, 'r')
             if runcmp:
-                if var == 'T':
-                    cmax = 1.
+                filename = ('{0}/mpaso.hist.am.timeSeriesStatsMonthly.'
+                            .format(runpath[runname.index(runcmpname)]) 
+                            + datestr + '-01.nc')
+                f2 = netCDF4.Dataset(filename, 'r')
+
+            
+            ssh      = f.variables['timeMonthly_avg_ssh'][0,cellidx]
+            sshfill = np.append(0,np.minimum(ssh,zice))
+            sshfill = np.append(sshfill,0)
+            
+                
+            for var in varlist:
+                image_filename = savepath + run
+                if runcmp:
+                    image_filename = image_filename + '_cmp'
+                image_filename = image_filename + '_' + var 
+                if var == 'u' and normal :
+                   image_filename = image_filename + 'normal' 
+                image_filename = ( image_filename + 
+                                   ops[varlist.index(var)] +  
+                                   '_' + transect_name + '_' + datestr + '_lim' + 
+                                   str(varlim) +'.png') 
+
+                # calculate z from depths
+                zmesh = zmidfrommesh(fmesh, cellidx = cellidx, 
+                                     vartype = 'scalar')
+                
+                if not overwrite and os.path.exists(image_filename):
+                    print(image_filename + ' exists')
+                    continue
+                data     = f.variables[varname[vartitle.index(var)]][0,cellidx,:]
+                #print('data_shape = ',np.shape(data))
+                #print('ymesh_shape = ',np.shape(ymesh))
+                #print('zmesh_shape = ',np.shape(zmesh))
+                #print('data[0,:] = ',data[0,:])
+                if runcmp: 
+                    data2 = f2.variables[varname[vartitle.index(var)]][0,cellidx,:]
+                
+                if var == 'u' and normal:
+                    u = data
+                    v = f.variables[varname[vartitle.index('v')]][0,cellidx,:]
+                    u_angle = np.arctan2(v,u)
+                    transect_angle_normal = np.add(angle, pi/2)
+                    u_norm = np.sqrt(np.add(np.square(u),np.square(v)))
+                    data = np.multiply(u_norm, 
+                                       np.cos(np.subtract(u_angle,
+                                              transect_angle_normal)))
+                # define plot location
+                #if new:
+                #    idx1 = np.argmin( np.square(yCell-lat_transect[0]) + 
+                #                      np.square(xCell-lon_transect[0])   )
+                #    idx2 = np.argmin( np.square(yCell-lat_transect[1]) + 
+                #                      np.square(xCell-lon_transect[1])   )
+                #    return
+                #else:
+                #    # define line of constant latitude
+                #    if lat_transect[0] == lat_transect[1]:
+                #        lat_transect[0] = lat_transect[0] - dlat
+                #        lat_transect[1] = lat_transect[1] + dlat
+                #    if lon_transect[0] == lon_transect[1]:
+                #        lon_transect[0] = lon_transect[0] - dlon
+                #        lon_transect[1] = lon_transect[1] + dlon
+                #    # northern limit for subplots
+                #    logical_N = (latCell < lat_N*deg2rad) & (xCell > 0)
+                #    
+                #    # indices of transect
+                #    logical_trans = ( (latCell > lat_transect[0]*deg2rad) & 
+                #                      (latCell < lat_transect[1]*deg2rad) &
+                #                      (lonCell > lon_transect[0]*deg2rad) & 
+                #                      (lonCell < lon_transect[1]*deg2rad)   )
+                #    idx_trans = np.where(logical_trans)[0]
+                #    
+                #    idx1 = np.argmin(yCell[logical_trans])
+                #    temp = np.sqrt( np.square(yCell[logical_trans] - yCell[logical_trans][idx1]) + 
+                #                    np.square(xCell[logical_trans] - xCell[logical_trans][idx1])   )
+                #    idxsort_trans = idx_trans[temp.argsort()]
+                #    ysort_trans = yCell[idxsort_trans]
+                #    xsort_trans = xCell[idxsort_trans]
+                #    dist_trans = temp[temp.argsort()]
+                #    dd_trans = np.zeros(dist_trans.shape)
+                #    dd_trans[1:] = dist_trans[1:]-dist_trans[:-1]
+                #    idx2, = np.where(dd_trans>100e3) 
+                #    if len(idx2) > 0:
+                #        dmax = dist_trans[idx2[0]-1]# distance along transect
+                #    else:
+                #        dmax = np.max(dist_trans)
+               
+                
+                #data_trans = np.transpose(data[idxsort_trans,:])
+                #data_trans_masked = np.transpose(data[idxsort_trans,:])
+                #data_trans_zmasked = np.transpose(data[idxsort_trans,:])
+                
+                #zssh = zbottom[:,0] + zh[:,0]
+                # Ideally, mask both bad data and ice shelf
+                _,zicemesh = np.meshgrid(depths,zice)
+
+                #data_masked = np.ma.masked_where( (data < bad_data) |
+                #                                  (zmesh > zicemesh), 
+                #                                  data)
+                #data_trans_masked = np.ma.masked_where( (data_trans < bad_data) |
+                #                                        (zmesh > zicemesh), data_trans)
+                #data_masked = data
+                data_masked = np.ma.masked_where( (data < bad_data) |
+                        (data == bad_data2), data)
+                for idx,i in enumerate(cellidx):
+                    data_masked[idx,:] = np.ma.masked_where( 
+                            (zmesh[idx,:] > zice[idx]), data[idx,:])
+                    for jdx,j in enumerate(depths):
+                        data_masked[idx,jdx] = np.ma.masked_where( 
+                            (jdx > kmax[idx] ), data[idx,jdx])
+                mask = np.ma.getmask(data_masked)
+                #print(ymesh[~mask].flatten()) 
+                #print(zmesh[~mask].flatten()) 
+                #print(data_masked[~mask].flatten())
+                #print(data_masked[0,:])
+                #print(zmesh[0,:])
+                #print(ssh[0])
+                #print(zice[0])
+                #print(zmax[0])
+                #print(ymesh[0,:])
+                
+                if ops[varlist.index(var)] == 'barotropic':
+                    for idx,i in enumerate(cellidx):
+                        u_depth_mean = 0
+                        for jdx,j in enumerate(depths):
+                            #wct = 
+                            u_depth_mean += (layer_thickness/wct) * data_masked[idx,jdx]
+                            data_masked[idx,:] = np.mean(temp[~mask[idx,:]])
+                    
+                elif ops[varlist.index(var)] == 'baroclinic':
+                    for idx,i in enumerate(cellidx):
+                        temp = data_masked[idx,:]
+                        data_masked[idx,:] = np.subtract(temp,
+                                                np.mean(temp[~mask[idx,:]]))
+                
+                # plots
+                
+                clevels = np.arange(varmin[vartitle.index(var)], 
+                                    varmax[vartitle.index(var)],
+                                    dvar[vartitle.index(var)]   )
+                if clevels[0] > np.min(data_masked[~mask].flatten()):
+                    clevels = np.append(np.min(data_masked[~mask].flatten()),clevels)
+                if clevels[-1] < np.max(data_masked[~mask].flatten()):
+                    clevels = np.append(clevels,np.max(data_masked[~mask].flatten()))
+                
+                fig = plt.figure()
+                
+                if runcmp:
+                    cmap1 = "cmo.balance"
                 else:
-                    cmax = max(abs(np.percentile(data_trans_zmasked[~mask].flatten(),10)),
-                           abs(np.percentile(data_trans_zmasked[~mask].flatten(),90)))
-                plt.clim([-1*cmax,cmax])
-            else:
-                plt.clim([varmin[vartitle.index(var)], varmax[vartitle.index(var)]])
-        if zscale == 'log':
-            ax.set_yscale('log')
-            plt.ylim([1,np.abs(np.min(zmesh[~mask].flatten())-50)])
-        ax.invert_yaxis()
-        cbar = plt.colorbar()
-        cbar.set_label(var)
-        plt.xlabel('Distance (km)')
-        plt.ylabel('Depth (m)')
-        plt.xlim([np.min(dist_trans)/1e3,dmax/1e3])
-        plt.title(run + ': ' + datestr)
-        filename = run
-        if runcmp:
-            filename = filename + '_cmp'
-        filename = ( filename + '_' + var + ops[varlist.index(var)] + '_' + 
-                     placename + '_' + datestr + '_lim' + str(varlim) ) 
-        plt.savefig(savepath + '/' + filename + '.png',dpi=set_dpi)
-        print(filename) 
-        plt.close()
+                    cmap1 = varcmap[vartitle.index(var)]
+                
+                if runcmp:
+                    data1_masked = data_masked
+                    data_masked = np.subtract(data1_masked,data2[~mask])
+                
+                cntr2 = plt.tricontourf(np.transpose(ymesh[~mask].flatten()), 
+                                        np.transpose(
+                                           np.abs(zmesh[~mask].flatten())), 
+                                        np.transpose(
+                                           data_masked[~mask].flatten()), 
+                                        levels=clevels,cmap=cmap1)
+                plt.plot(dist, np.abs(ssh), 
+                         color = 'black', marker = '.', linestyle = '-')
+                plt.plot(ymesh[~mask].flatten(), 
+                         np.abs(zmesh[~mask].flatten()), 
+                         '.', color = 'white', markersize = 1)#, fillstyle = 'none')
+                plt.fill(yfill, np.abs(sshfill), c = 'white', alpha = 1)
+                plt.plot(dist, np.abs(zmax), 
+                         color = 'black', marker = '.', linestyle = '-')
+                plt.fill(yfill, np.abs(bathyfill), c = 'grey', alpha = 1)
+                ax = plt.gca()
+
+                if varlim:
+                    if runcmp:
+                        if var == 'T':
+                            cmax = 1.
+                        else:
+                            cmax = max(abs(np.percentile(data_masked[~mask].flatten(),
+                                                         10)),
+                                       abs(np.percentile(data_masked[~mask].flatten(),
+                                                         90)))
+                        plt.clim([-1*cmax,cmax])
+                    else:
+                        plt.clim([varmin[vartitle.index(var)], 
+                                  varmax[vartitle.index(var)]])
+
+                if zscale == 'log':
+                    ax.set_yscale('log')
+                    plt.ylim([1,np.abs(np.min(zmesh[~mask].flatten())-50)])
+                ax.invert_yaxis()
+                cbar = plt.colorbar()
+                cbar.set_label(var)
+                plt.xlabel('Distance (km)')
+                plt.ylabel('Depth (m)')
+                #plt.xlim([np.min(dist)/1e3,np.max(dist)/1e3])
+                plt.title(runtitle[runname.index(run)] + ': ' + datestr)
+                
+                plt.savefig(image_filename,dpi=set_dpi)
+                print(image_filename) 
+                plt.close()
 
 #------------------------------------------------------------------------------
 # PLOT_MESH_VAR 
@@ -1279,7 +1738,7 @@ def transect(latS, lonW, varlist, yr, mo, varlim = False, zscale = 'linear',
 #    locname    name of the location which sets map limits, string
 #    savepath   directory where figure is to be saved, string
 #------------------------------------------------------------------------------
-def plot_zice_map(run = 'ISMF',locname = 'fris',savepath='/global/homes/c/cbegeman/weddell_output/'):
+def plot_zice_map(run = 'ISMF',locname = 'fris',savepath=savepath_nersc):
 
     # set further parameters
     lat_N = -50 # northern limit of domain
@@ -1336,21 +1795,20 @@ def plot_zice_map(run = 'ISMF',locname = 'fris',savepath='/global/homes/c/cbegem
     plt.savefig(savepath + '/' + filename + '.png',dpi=set_dpi)
     return
 
-def plot_stresscurl_t(var,run='ISMF',yrrange=[70,71],
+def plot_stresscurl_t(var,run=['ISMF'],yrrange=[70,71],
                       locname='wedwang',coord='lat',
-                      runcmp=False,overwrite=False,map_output=False,
-                      savepath='/global/homes/c/cbegeman/weddell_output/'):
-    filename = 'windstresscurl_'+locname 
-    if runcmp:
-        filename = filename+'_cmp'
+                      overwrite=False,map_output=False,
+                      savepath=savepath_nersc):
+    filename = run[0]
+    if len(run) > 1:
+        filename = filename + '_cmp_' + run[1]
+    filename = filename + '_windstresscurl_' + locname 
     print(filename)
+    
     if locname not in loc:
         print('locname is not defined')
         return
-    xmin = loc_xmin[loc.index(locname)]
-    xmax = loc_xmax[loc.index(locname)]
-    ymin = loc_ymin[loc.index(locname)]
-    ymax = loc_ymax[loc.index(locname)]
+    
     # check if plot was already generated
     if os.path.exists(savepath + filename + '.png'):
         print('file exists')
@@ -1358,6 +1816,10 @@ def plot_stresscurl_t(var,run='ISMF',yrrange=[70,71],
             print('skipping file')
             return
     
+    xmin = loc_xmin[loc.index(locname)]
+    xmax = loc_xmax[loc.index(locname)]
+    ymin = loc_ymin[loc.index(locname)]
+    ymax = loc_ymax[loc.index(locname)]
     # open data files
     fmesh = netCDF4.Dataset(meshpath[runname.index(run)])
     # import variables from file
@@ -1420,9 +1882,13 @@ def plot_stresscurl_t(var,run='ISMF',yrrange=[70,71],
         flag='w+'
     else:
         flag='a+'
+    
     table_file = open(savepath+'windstresscurl_'+locname+'_'+str(yrrange[0])+'-'+str(yrrange[1])+'.txt',flag)
     wr = csv.writer(table_file,dialect='excel')
-    wr.writerow(['year','month','decyear','ISMF_curl','ISMF-noEAIS_curl'])
+    headings = ['year','month','decyear']
+    for i in run:
+        headings.append(i+'_curl')
+    wr.writerow(headings)
     for yr in range(yrrange[0],yrrange[1]):
         for mo in range(1,13):
             times = (yr+(mo-1.0)/12.0)
@@ -1501,7 +1967,7 @@ def plot_stresscurl_t(var,run='ISMF',yrrange=[70,71],
     return
 
 def plot_stresscurl_t_diff(filename,tlim=[9999.,9999.],
-                      savepath='/global/homes/c/cbegeman/weddell_output/'):
+                      savepath=savepath_nersc):
     df = pandas.read_csv(savepath+filename+'.txt')
     t = df['decyear'][:]
     curl = df['ISMF_curl'][:]
@@ -1525,34 +1991,69 @@ def plot_stresscurl_t_diff(filename,tlim=[9999.,9999.],
     #   for j,entry in enumerate(row):
     return
 
-def plot_fluxgate_t(filename,tlim=[9999.,9999.],run='ISMF',runcmpname='ISMF-noEAIS',
-                    savepath='/global/homes/c/cbegeman/weddell_output/'):
-    print(filename)
-    df = pandas.read_csv(savepath+filename+'.txt')
-    for col in df.columns: 
-       print(col) 
-    print(df.isnull().sum())
-    t = df['decyear'][:]
-    Fpos = df[run+'_flux_pos'][:]          
-    Fneg = df[run+'_flux_neg'][:]          
-    Fsum = df[run+'_flux_total'][:]        
-    F2pos = df[runcmpname+'_flux_pos'][:]  
-    F2neg = df[runcmpname+'_flux_neg'][:]  
-    F2sum = df[runcmpname+'_flux_total'][:]
+#------------------------------------------------------------------------------
+# PLOT_FLUXGATE_T 
+# -- Opens a csv file with mean volumetric flux through the fluxgate as 
+#    a function of time and generates a line plot
+# 
+# Inputs:
+# 
+#------------------------------------------------------------------------------
+def plot_fluxgate_t(filename,tlim=[9999.,9999.],run_incr=['ISMF'],runcmpname='ISMF-noEAIS',
+                    mode = 'barotropic-baroclinic',savepath=savepath_nersc):
+
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.plot(t, Fpos,'--b',label=run+' +')
-    ax.plot(t, Fneg, ':b',label=run+' -')
-    ax.plot(t, Fsum, '-b',label=run+' total')
-    ax.plot(t,F2pos,'--k',label=runcmpname+' +')
-    ax.plot(t,F2neg, ':k',label=runcmpname+' -')
-    ax.plot(t,F2sum, '-k',label=runcmpname+' total')
-    print('f2pos avg',np.mean(F2pos))
-    print('f2neg avg',(F2neg))
-    print('f2sum avg',(F2sum))
+    
+    if mode == 'pos-neg':
+        #print(filename)
+        df = pandas.read_csv(savepath+filename+'.txt')
+        #for col in df.columns: 
+        #   print(col) 
+        print(df.isnull().sum())
+        t = df['decyear'][:]
+        for run in run_incr:
+            Fpos = df[run+'_flux_pos'][:]          
+            Fneg = df[run+'_flux_neg'][:]          
+            Fsum = df[run+'_flux_total'][:]        
+            F2pos = df[runcmpname+'_flux_pos'][:]  
+            F2neg = df[runcmpname+'_flux_neg'][:]  
+            F2sum = df[runcmpname+'_flux_total'][:]
+            ax.plot(t, Fpos,'--b',label=run+' +')
+            ax.plot(t, Fneg, ':b',label=run+' -')
+            ax.plot(t, Fsum, '-b',label=run+' total')
+            ax.plot(t,F2pos,'--k',label=runcmpname+' +')
+            ax.plot(t,F2neg, ':k',label=runcmpname+' -')
+            ax.plot(t,F2sum, '-k',label=runcmpname+' total')
+    elif mode == 'barotropic-baroclinic':
+        t_season.append(1)
+        barotropic_ls = '-'
+        baroclinic_ls = '--'
+        ylim = [0,0]
+        for run in run_incr:
+            input_filename = run + filename[4:] + '.txt'
+            df = pandas.read_csv(savepath+input_filename)
+            t = df['decyear'][:]
+            F_barotropic = df['F_barotropic'][:]          
+            F_baroclinic = df['F_baroclinic_pos'][:]          
+            ax.plot(t, F_barotropic, 
+                    linestyle = barotropic_ls, color = run_color[run_incr.index(run)],
+                    label = runtitle[runname.index(run)] + ',barotropic')
+            ax.plot(t, F_baroclinic, 
+                    linestyle = baroclinic_ls, color = run_color[run_incr.index(run)],
+                    label = runtitle[runname.index(run)] + ',baroclinic')
+            ylim = [np.min([ylim[0],np.min(F_barotropic),np.min(F_baroclinic)]),
+                    np.max([ylim[1],np.max(F_barotropic),np.max(F_baroclinic)])]
+        for yr in range(floor(np.min(t)),ceil(np.max(t))):
+            for s,_ in enumerate(season): 
+                ax.fill([yr + t_season[s],   yr + t_season[s],
+                         yr + t_season[s+1], yr + t_season[s+1]],
+                         [ylim[0],ylim[1],ylim[1],ylim[0]],
+                         facecolor=season_color[s], alpha=0.5, linewidth=0)
+    
     if tlim[0] != 9999.:
        ax.set_xlim(tlim)
-       filename = filename + '_' + runcmpname + '_' + str(int(tlim[0])) +'-'+ str(int(tlim[1]))
+       filename = filename + '_' + str(int(tlim[0])) +'-'+ str(int(tlim[1])) + '_season'
     ax.set_xlabel(r'Year',fontsize=fs)
     ax.set_ylabel(r'Volume Flux (Sv)',fontsize=fs)
     #ax.set_ylabel(r'Volume Flux (m$^{3}$s$^{-1})',fontsize=fs)
@@ -1589,16 +2090,18 @@ def plot_fluxgate_t(filename,tlim=[9999.,9999.],run='ISMF',runcmpname='ISMF-noEA
 #               if false, skip all [var,yr,mo] combinations for which plot already exists
 #    savepath   directory where figure is to be saved
 #------------------------------------------------------------------------------
-def plot_surf_var(var,yr,mo,run='ISMF',locname='fris',plottype = 'abs',
+def plot_surf_var(var,yr,mo,run=['ISMF'],locname='fris',plottype = 'abs',
                   z=0,zab=False,level=bad_data,
-                  runcmp=False,varlim=False,overwrite=False,
-                  savepath='/global/homes/c/cbegeman/weddell_output/'):
+                  varlim=False,overwrite=False,
+                  savepath=savepath_nersc):
 
+    if len(run) == 2:
+        runcmp = True
+    else:
+        runcmp = False
     if locname not in loc:
         print('locname is not defined')
         return
-    xmax = loc_xmax[loc.index(locname)]
-    ymin = loc_ymax[loc.index(locname)]
     size = loc_ptsize[loc.index(locname)]
     
     if zab:
@@ -1613,9 +2116,9 @@ def plot_surf_var(var,yr,mo,run='ISMF',locname='fris',plottype = 'abs',
     datestr = '{0:04d}-{1:02d}'.format(yr, mo)
     
     # filename to save plot
-    filename = run
+    filename = run[0]
     if runcmp:
-        filename = filename + '_cmp'
+        filename = filename + '_cmp_' + run[1]
     filename = filename + '_' + var + '_' 
     if plottype == 'quiver':
         filename = filename + 'quiver_'
@@ -1643,33 +2146,38 @@ def plot_surf_var(var,yr,mo,run='ISMF',locname='fris',plottype = 'abs',
             return
     
     # open data files
-    fmesh = netCDF4.Dataset(meshpath[runname.index(run)])
-    filein = '{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index(run)]) + datestr + '-01.nc'
+    fmesh = netCDF4.Dataset(meshpath[runname.index(run[0])])
+    filein = '{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index(run[0])]) + datestr + '-01.nc'
     f = netCDF4.Dataset(filein, 'r')
     if runcmp:
-       filein2 = '{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index('ISMF-noEAIS')]) + datestr + '-01.nc'
+       filein2 = '{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index(run[1])]) + datestr + '-01.nc'
        f2 = netCDF4.Dataset(filein2, 'r')
     
     # import variables from file
     latCell  = fmesh.variables['latCell'][:]
     lonCell  = fmesh.variables['lonCell'][:]
     idxCell  = fmesh.variables['indexToCellID'][:]
-    xCell    = fmesh.variables['xCell'][:]
-    yCell    = fmesh.variables['yCell'][:]
+    xCell    = np.divide(fmesh.variables['xCell'][:],1e3)
+    yCell    = np.divide(fmesh.variables['yCell'][:],1e3)
     kmax     = fmesh.variables['maxLevelCell'][:]
     zmax     = np.multiply(-1,fmesh.variables['bottomDepth'][:])
     zh       = fmesh.variables['layerThickness'][0,:]
     zice     = fmesh.variables['landIceDraft'][0,:]
+    landicemask  = fmesh.variables['landIceMask'][0,:]
     
     # northern limit for subplots
-    idx_N = np.argwhere((xCell<xmax) & (xCell > 0) & (yCell < 0) & (yCell > -1.5e6) & (latCell < lat_N*deg2rad))
+    idx_N = np.argwhere((xCell<loc_xmax[loc.index(locname)]/1e3) & 
+                        (xCell > 0) & 
+                        (yCell < 0) & 
+                        (yCell > loc_ymin[loc.index(locname)]/1e3) & 
+                        (latCell < lat_N*deg2rad))
     logical_N = idx_N[:,0]
     x = xCell[logical_N]
     y = yCell[logical_N]
     idx = idxCell[logical_N]
     
     # calculate z from depths
-    zmid = zmidfrommesh(fmesh)
+    zmid = zmidfrommesh(fmesh,cellidx=idx)
     
     # get data at specified depth
     zidx = np.zeros(len(logical_N),)
@@ -1681,12 +2189,15 @@ def plot_surf_var(var,yr,mo,run='ISMF',locname='fris',plottype = 'abs',
             else:
                 zeval = np.add(zmax[logical_N],z)
                 for i,idx in enumerate(logical_N):
-                    zidx[i] = int(np.argmin(np.abs(np.subtract(zmid[idx,:],zeval))))
+                    #zidx[i] = int(np.argmin(np.abs(np.subtract(zmid[idx,:],zeval))))
+                    zidx[i] = int(np.argmin(np.abs(np.subtract(zmid[i,:],zeval))))
         else:
             for i,idx in enumerate(logical_N):
-                zidx[i] = int(np.argmin(np.abs(np.subtract(zmid[idx,:],-1*z))))
+                #zidx[i] = int(np.argmin(np.abs(np.subtract(zmid[idx,:],-1*z))))
+                zidx[i] = int(np.argmin(np.abs(np.subtract(zmid[i,:],-1*z))))
         
         # get data
+        icemask = (landicemask[logical_N] == 1)
         if var == 'U':
             u = f.variables['timeMonthly_avg_velocityZonal'][0,logical_N,:]
             v = f.variables['timeMonthly_avg_velocityMeridional'][0,logical_N,:]
@@ -1706,7 +2217,7 @@ def plot_surf_var(var,yr,mo,run='ISMF',locname='fris',plottype = 'abs',
             heading = np.divide(np.arctan2(uz,vz),deg2rad)
         elif var == 'ssh':
             dataz = f.variables[varname[vartitle.index(var)]][0,logical_N]
-            bad_idx = (dataz > bad_data) #| (heading != bad_data2)
+            bad_idx = ((dataz > bad_data) | (landicemask[logical_N] == 1))
         else:
             data = f.variables[varname[vartitle.index(var)]][0,logical_N,:]
             if (var not in surfvar):
@@ -1813,10 +2324,13 @@ def plot_surf_var(var,yr,mo,run='ISMF',locname='fris',plottype = 'abs',
                     cmap = cmap1) #, norm = LogNorm())
         if varlim:
             plt.clim([varmin[vartitle.index(var)], varmax[vartitle.index(var)]])
-        
+            if var == 'ssh' and runcmp:
+                plt.clim([varmin[vartitle.index(var+'_cmp')], varmax[vartitle.index(var+'_cmp')]])
         elif level > bad_data and not runcmp:
             #plt.clim([0,2000])
             plt.clim([np.percentile(dataz[bad_idx],10),np.percentile(dataz[bad_idx],90)])
+        #else:
+        #    plt.clim([np.percentile(dataz[bad_idx],10),np.percentile(dataz[bad_idx],90)])
         
         if (var == 'U'):
         #if runcmp:
@@ -1830,8 +2344,10 @@ def plot_surf_var(var,yr,mo,run='ISMF',locname='fris',plottype = 'abs',
         gl2 = plt.tricontour(yCell[logical_N].flatten(), xCell[logical_N].flatten(), 
                              zmax[logical_N].flatten(), [-1800], colors = 'k', linewidths = 2)
         # plot a fairly shallow ice contour as a marker of ice shelf front
-        gl1 = plt.tricontour(yCell[logical_N].flatten(), xCell[logical_N].flatten(), 
-                             zice[logical_N].flatten(), [-10], colors = 'b', linewidths = 2)
+        #gl1 = plt.tricontour(yCell[logical_N].flatten(), xCell[logical_N].flatten(), 
+        #                     zice[logical_N].flatten(), [-1], colors = 'b', linewidths = 2)
+        #gl1 = plt.tricontour(yCell[logical_N].flatten(), xCell[logical_N].flatten(), 
+        #                     landicemask[logical_N].flatten(), [0], colors = 'b', linewidths = 2)
         
         if level > bad_data and not runcmp:
             # outline points where the contour is below seafloor
@@ -1839,19 +2355,16 @@ def plot_surf_var(var,yr,mo,run='ISMF',locname='fris',plottype = 'abs',
                             s=size, marker = '.',
                             facecolor = 'none',edgecolors = 'k')
             # outline points where the contour is above ice base
-            cntro = plt.scatter(y[icemask], x[icemask], 
-                            s=size, marker = '.',
-                            facecolor = 'none',edgecolors = 'b')
+        cntro = plt.scatter(y[icemask], x[icemask], 
+                        s=size, marker = '.',
+                        facecolor = 'none',edgecolors = 'b')
              
         cbar1 = fig.colorbar(cntr1)
         if level > bad_data:
             cbar1.set_label('Contour depth (m)')
         else:
-            cbar1.set_label(var)
+            cbar1.set_label(varlabel[vartitle.index(var)])
         fig.tight_layout()
-        plt.title(run + ': ' + datestr)
-        plt.savefig(savepath + '/' + filename + '.png',dpi=set_dpi)
-        plt.close()
     
     if (var == 'U') | (var == 'tau'):
         
@@ -1871,10 +2384,6 @@ def plot_surf_var(var,yr,mo,run='ISMF',locname='fris',plottype = 'abs',
             cbar2 = fig.colorbar(cntr2)
             cbar2.set_label('Degrees from N')    
             fig.tight_layout()
-            if runcmp:
-                run = run + '_cmp'
-            plt.savefig(savepath + '/' + filename + '.png',dpi=set_dpi)
-            plt.close()
         
         elif plottype == 'quiver':
             fig = plt.figure()
@@ -1891,9 +2400,18 @@ def plot_surf_var(var,yr,mo,run='ISMF',locname='fris',plottype = 'abs',
             cbar2 = fig.colorbar(cntr1)
             cbar2.set_label('depth (m)')    
             fig.tight_layout()
-            plt.title(run + ': ' + datestr)
-            plt.savefig(savepath + '/' + filename + '.png',dpi=set_dpi)
-            plt.close()
+    
+    if runcmp:
+        plt.title(run[0] + ' - ' +run[1] + ': ' + datestr)
+    else:
+        plt.title(run[0] + ': ' + datestr)
+    
+    #ax.set_ylim([loc_ymin[loc.index(locname)]/1e3,loc_ymax[loc.index(locname)]/1e3])
+    #ax.set_xlim([loc_xmin[loc.index(locname)]/1e3,loc_xmax[loc.index(locname)]/1e3])
+    ax.set_yticklabels([])
+    ax.set_xticklabels([])
+    plt.savefig(savepath + '/' + filename + '.png',dpi=set_dpi)
+    plt.close()
 
 #------------------------------------------------------------------------------
 # ZMIDFROMMESH 
@@ -1904,7 +2422,7 @@ def plot_surf_var(var,yr,mo,run='ISMF',locname='fris',plottype = 'abs',
 #    zidx   (optional) indices for z level (list of integers)
 #           if zidx=-1 (default), return the full z vector
 #------------------------------------------------------------------------------
-def zmidfrommesh(fmesh,zidx=[-1],cellidx=[],vartype='scalar'):
+def zmidfrommesh(fmesh,zidx=[-1],cellidx=[],vartype='scalar'): 
     if vartype=='scalar':
         zh       = fmesh.variables['layerThickness'][0,cellidx]
         zmax     = fmesh.variables['bottomDepth'][cellidx]
@@ -1935,4 +2453,5 @@ def zmidfrommesh(fmesh,zidx=[-1],cellidx=[],vartype='scalar'):
         for j in range(zlevels-2,-1,-1):
             zbottom[i,j] = zbottom[i,j+1] + zh[i,j+1]
     zmid = zbottom + np.multiply(0.5,zh)
-    return zmid
+    ztop = zbottom + zh
+    return zmid#,zbottom,ztop
