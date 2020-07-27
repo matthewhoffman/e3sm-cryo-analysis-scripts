@@ -31,13 +31,18 @@ import pandas
 from extract_depths import zmidfrommesh
 from pick_from_mesh import *
 from plot_config import *
+from shapely.geometry import Point,Polygon
+#from shapely.geometry import Polygon
 
 global bad_data, bad_data2, deg2rad, lat_N, runname, runpath, meshpath, vartitle, varname, varmin, varmax, varcmap, surfvar, dvar
 
 def TS_diagram(run,lat,lon,startyr,endyr,z=0,zab=False,zall=True,plot_lines=True,
                seasonal=False,runcmp=False,savepath=savepath_nersc,
-               polygon = TSpolygon_Hattermann2018):
+               pyc_polygon = TSpolygon_Hattermann2018_edit):
 
+    S_limits = np.array([32.5,35.0])
+    T_limits = np.array([-2.1,1.5])
+    
     placename = (str(int(abs(lat))) + 'S' + 
                  str(int(abs(lon-360))) + 'W') 
     
@@ -48,17 +53,6 @@ def TS_diagram(run,lat,lon,startyr,endyr,z=0,zab=False,zall=True,plot_lines=True
     
     idx = pick_point(run=run,lat=lat,lon=lon)
     fmesh = netCDF4.Dataset(meshpath[runname.index(run)])
-    #latCell = fmesh.variables['latCell'][:]
-    #lonCell = fmesh.variables['lonCell'][:]
-    #xCell = fmesh.variables['xCell'][:]
-    #yCell = fmesh.variables['yCell'][:]
-    #latplt = -1.*latS*deg2rad
-    #lonplt = (360.-lonW)*deg2rad
-    #idx = np.argmin( (latCell-latplt)**2 + (lonCell-lonplt)**2)
-    # northern limit for subplots
-    #logical_N = (latCell < lat_N*deg2rad) & (xCell > 0)
-    #zmax     = np.multiply(-1,fmesh.variables['bottomDepth'][:])
-    #zice     = fmesh.variables['landIceDraft'][0,:]
     nz = len(fmesh.variables['layerThickness'][0,idx,:]) 
     
     T = np.zeros((nt,nz)) 
@@ -99,15 +93,15 @@ def TS_diagram(run,lat,lon,startyr,endyr,z=0,zab=False,zall=True,plot_lines=True
     axTS = fig.add_subplot()
     if zall:
         sc=axTS.scatter(S, T, s=1, c='grey')
+    if seasonal:
+        cNorm  = Normalize(vmin=0, vmax=1)
+        scalarMap = cmx.ScalarMappable(norm=cNorm, cmap='twilight')
+        cbtitle = r'Time of Year'
+    else:
+        cNorm  = Normalize(vmin=startyr, vmax=endyr + 1)
+        scalarMap = cmx.ScalarMappable(norm=cNorm, cmap='cmo.deep')
+        cbtitle = r'Simulated Year'
     if plot_lines:
-        if seasonal:
-            cNorm  = Normalize(vmin=0, vmax=1)
-            scalarMap = cmx.ScalarMappable(norm=cNorm, cmap='twilight')
-            cbtitle = r'Time of Year'
-        else:
-            cNorm  = Normalize(vmin=startyr, vmax=endyr + 1)
-            scalarMap = cmx.ScalarMappable(norm=cNorm, cmap='cmo.deep')
-            cbtitle = r'Simulated Year'
         for i,ti in enumerate(times):
             if i > 0:
                if seasonal:
@@ -122,31 +116,36 @@ def TS_diagram(run,lat,lon,startyr,endyr,z=0,zab=False,zall=True,plot_lines=True
                               color=colorVal,linewidth=1)
 
     else:
-        scz=axTS.plot(S[:,zidx], T[:,zidx], s = 30,edgecolor='k', cmap='twilight')
-    S_polygon = [polygon[i][0] for i in np.arange(0,4)]
-    T_polygon = [polygon[i][1] for i in np.arange(0,4)]
-    S_polygon = np.append(S_polygon,polygon[0][0])
-    T_polygon = np.append(T_polygon,polygon[0][1])
-    print(S_polygon)
-    print(T_polygon)
+        scz=axTS.scatter(S[:,zidx], T[:,zidx], 
+                         s = 30,edgecolor='k', cmap='twilight')
+
+    plt.colorbar(scalarMap,label=cbtitle)
+   
+    # show pycnocline bounds
+    S_polygon = np.zeros([5],dtype='float')
+    S_polygon[:-1] = [pyc_polygon[i][0] for i in np.arange(0,4)]
+    S_polygon[-1]  = S_polygon[0]
+    T_polygon = np.zeros([5],dtype='float')
+    T_polygon[:-1] = [pyc_polygon[i][1] for i in np.arange(0,4)]
+    T_polygon[-1]  = T_polygon[0]
     for i in np.arange(0,4):
         axTS.plot([S_polygon[i],S_polygon[i+1]],
                   [T_polygon[i],T_polygon[i+1]],
                   color='k')
     #axTS.fill(S_polygon, T_polygon,closed=True,
     #          fill = False,edgecolor='k')
-
-    plt.colorbar(scalarMap,label=cbtitle)
+     
+    # plot water mass bounds
     lncolor = 'black'
     lw1 = 1 
-    plt.plot([34.0, 34.0], [-1.85, 0.2],  ':', color=lncolor, linewidth=lw1)
-    plt.plot([34.5, 34.5], [-1.86, -1.5], ':', color=lncolor, linewidth=lw1)
-    plt.plot([34.0, 35.0], [-1.5, -1.5],  ':', color=lncolor, linewidth=lw1)
-    plt.plot([34.0, 35.0], [0.0, 0.0],    ':', color=lncolor, linewidth=lw1)
-    plt.plot([33.5, 35.0], [-0.0575*33.5+0.0901, -0.0575*35.0+0.0901], 
-                                          ':', color=lncolor, linewidth=lw1)
-    axTS.set_ylim([-2.1,1.5])
-    axTS.set_xlim([32.5,34.6])
+    #plt.plot([34.0, 34.0], [-1.85, 0.2],  ':', color=lncolor, linewidth=lw1)
+    #plt.plot([34.5, 34.5], [-1.86, -1.5], ':', color=lncolor, linewidth=lw1)
+    #plt.plot([34.0, 35.0], [-1.5, -1.5],  ':', color=lncolor, linewidth=lw1)
+    #plt.plot([34.0, 35.0], [0.0, 0.0],    ':', color=lncolor, linewidth=lw1)
+    plt.plot(S_limits, S_limits*m_Tfreezing + b_Tfreezing, 
+             ':', color=lncolor, linewidth=lw1)
+    axTS.set_ylim(T_limits)
+    axTS.set_xlim(S_limits)
     axTS.set_ylabel(varlabel[vartitle.index('T')]) 
     axTS.set_xlabel(varlabel[vartitle.index('S')])
 
@@ -156,6 +155,84 @@ def TS_diagram(run,lat,lon,startyr,endyr,z=0,zab=False,zall=True,plot_lines=True
     print(filename)
     plt.savefig(savepath + filename +'.png')
     plt.clf()
+
+#----------------------------------------------------------------------
+# Z_PYCNOCLINE
+# -- compute the depth of the pycnocline
+#
+# Inputs:
+#   z   vector of depths
+#   T   vector of temperature of length z
+#   S   vector of temperature of length z
+#   pyc_polygon   list of points defining T,S polygon within which the 
+#                 pycnocline must fall
+# Output:
+#   z   depth of pycnocline
+#----------------------------------------------------------------------
+
+def z_pycnocline(z,T,S,diags=False,cellidx=0,zmin=-9999,
+                 pyc_polygon = TSpolygon_Hattermann2018_edit,
+                 savepath=savepath_nersc):
+
+    TS_polygon = Polygon(pyc_polygon)
+    polygon_mask = np.zeros(len(z),dtype=bool)
+
+    for zidx in range(len(z)):
+        polygon_mask[zidx] = TS_polygon.contains(Point((S[zidx],T[zidx])))
+
+    if np.sum(polygon_mask) == 0 and len(z) > 1:
+        dz = 5.#dz = np.min([5.,np.min(z[:-1]-z[1:])])
+        zi = np.arange(np.max(z),
+                       np.max([np.min(z),zmin]),
+                       -1*dz)
+        polygon_mask = np.zeros(len(zi),dtype=bool)
+        Sfunc = interp.interp1d(z, S) #, kind='cubic')
+        Si = Sfunc(zi)
+        Tfunc = interp.interp1d(z, T) #, kind='cubic')
+        Ti = Tfunc(zi)
+        for zidx in range(len(zi)):
+            polygon_mask[zidx] = TS_polygon.contains(Point((Si[zidx],Ti[zidx])))
+        if np.sum(polygon_mask) == 0:
+            dz = 0.1#dz = np.min([5.,np.min(z[:-1]-z[1:])])
+            zi = np.arange(np.max(z),
+                           np.max([np.min(z),zmin]),
+                           -1*dz)
+            polygon_mask = np.zeros(len(zi),dtype=bool)
+            Sfunc = interp.interp1d(z, S) #, kind='cubic')
+            Si = Sfunc(zi)
+            Tfunc = interp.interp1d(z, T) #, kind='cubic')
+            Ti = Tfunc(zi)
+            for zidx in range(len(zi)):
+                polygon_mask[zidx] = TS_polygon.contains(Point((Si[zidx],Ti[zidx])))
+            if np.sum(polygon_mask) == 0:
+                filename = 'TS_polygon_'+str(cellidx)
+                fig = plt.figure(1, facecolor='w')
+                axTS = fig.add_subplot()
+                sc=axTS.plot(S, T, 'k', marker='.',linestyle='-')
+                sc=axTS.scatter(Si, Ti, s=1, c='grey')
+                S_polygon = np.zeros([5],dtype='float')
+                S_polygon[:-1] = [pyc_polygon[i][0] for i in np.arange(0,4)]
+                S_polygon[-1]  = S_polygon[0]
+                T_polygon = np.zeros([5],dtype='float')
+                T_polygon[:-1] = [pyc_polygon[i][1] for i in np.arange(0,4)]
+                T_polygon[-1]  = T_polygon[0]
+                for i in np.arange(0,4):
+                    axTS.plot([S_polygon[i],S_polygon[i+1]],
+                              [T_polygon[i],T_polygon[i+1]],
+                              color='k')
+                plt.savefig(savepath + filename +'.png')
+                plt.clf()
+                return nan
+            else:
+                return np.median(zi[polygon_mask])
+                
+        else:
+            return np.median(zi[polygon_mask])
+
+    if diags:
+        print(S[polygon_mask],T[polygon_mask])
+
+    return np.median(z[polygon_mask])
 
 #----------------------------------------------------------------------
 # TSERIES1 
@@ -186,49 +263,13 @@ def tseries1(run_incr,varlist,startyr,endyr,z=0,
     times = np.zeros((nt,))
     
     fmesh = netCDF4.Dataset(meshpath[runname.index(run_incr[0])])
-    latCell = fmesh.variables['latCell'][:]
-    lonCell = fmesh.variables['lonCell'][:]
-    xCell = fmesh.variables['xCell'][:]
-    yCell = fmesh.variables['yCell'][:]
-    if option == 'coord':
-        locname = str(latS) + 'S' + str(lonW) + 'W'
-        latplt = -1.*latS*deg2rad
-        lonplt = (360.-lonW)*deg2rad
-        idx = np.argmin( (latCell-latplt)**2 + (lonCell-lonplt)**2)
-        placename = ( str(round(latS)) + 'S' + str(round(lonW)) + 'W' ) 
-    elif option == 'by_index':
-        if placename == 'trough_shelf':
-            idx = cells_trough_shelf_lat[-1]-1 
-        elif placename == 'trough_ice':
-            idx = cells_trough_ice_lat[-1]-1 
-    
-    # northern limit for subplots
-    logical_N = (latCell < lat_N*deg2rad) & (xCell > 0)
-    zmax     = np.multiply(-1,fmesh.variables['bottomDepth'][:])
-    zice     = fmesh.variables['landIceDraft'][0,:]
+    idx = pick_point(option=option,lat=lat,lon=lon,run=run_incr[0],
+                     plot_map=True,savepath=savepath)
     
     if zab:
         m = 'mab'
     else:
         m = 'm'
-
-    if not os.path.exists(savepath + 'bathy_' + placename + '.png'):
-        fig = plt.figure()
-        cntr1 = plt.tricontourf(yCell[logical_N].flatten(), xCell[logical_N].flatten(), 
-                                zmax[logical_N].flatten(), 20, cmap="viridis")
-        plt.plot(yCell[logical_N],     xCell[logical_N], 'o', color = 'white', 
-                 markersize = 4, fillstyle = 'none')#, alpha = 0.5)
-        plt.plot(yCell[idx],     xCell[idx], 'o', color = 'red', 
-                 markersize = 4)
-        cntr = plt.tricontour(yCell[logical_N].flatten(), xCell[logical_N].flatten(), 
-                               zice[logical_N].flatten(), [-10], colors = 'k')
-        #if varlim:
-        #    plt.clim([varmin[vartitle.index('z')], varmax[vartitle.index('z')]])
-        plt.axis('equal')
-        cbar = plt.colorbar(cntr1)
-        cbar.set_label('Depth (m)')    
-        plt.savefig(savepath + 'bathy_' + placename + '.png',dpi=set_dpi)
-        plt.close()
     
     data = np.zeros((len(run_incr),len(varlist),nt)) 
     #if runcmp:
@@ -244,7 +285,8 @@ def tseries1(run_incr,varlist,startyr,endyr,z=0,
        
             datestr = '{0:04d}-{1:02d}'.format(yr, mo)
             for j,run in enumerate(run_incr):
-                filename = ('{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index(run)]) 
+                filename = ('{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(
+                            runpath[runname.index(run)]) 
                            + datestr + '-01.nc')
                 f = netCDF4.Dataset(filename, 'r')
                 for i,var in enumerate(varlist):
@@ -260,7 +302,6 @@ def tseries1(run_incr,varlist,startyr,endyr,z=0,
                         data[j,i,t] = f.variables[varname[vartitle.index(var)]][0,idx]
                     else:
                         data[j,i,t] = f.variables[varname[vartitle.index(var)]][0,idx,zidx]
-                        #if var == 'unormal':
                 f.close()
 
             #if runcmp:
@@ -378,10 +419,10 @@ def tseries1(run_incr,varlist,startyr,endyr,z=0,
 #   savepath  path to save plot images
 #----------------------------------------------------------------------
 def hovmoller(run,startyr,endyr,
-              option = 'coord', coord=[latS,lonW],
+              option = 'coord', coord=[-76,330],
               transect_id = '',
               varlist = ['T','S','rho','u','v'],zlim = [0,-9999],
-              limTrue = False,
+              limTrue = False, plot_pycnocline = False,
               input_filename = '',
               savepath = savepath_nersc):
 
@@ -391,15 +432,17 @@ def hovmoller(run,startyr,endyr,
         nt = len(years)*len(months)
         times = np.zeros((nt,))
         
+        idx = pick_point(run=run,lat=coord[0],lon=coord[1])
         fmesh = netCDF4.Dataset(meshpath[runname.index(run)])
-        latCell = fmesh.variables['latCell'][:]
-        lonCell = fmesh.variables['lonCell'][:]
-        xCell = fmesh.variables['xCell'][:]
-        yCell = fmesh.variables['yCell'][:]
-        locname = str(round(coord[0])) + 'S' + str(round(coord[1])) + 'W'
-        latplt = -1.*coord[0]*deg2rad
-        lonplt = (360.-coord[1])*deg2rad
-        idx = np.argmin( (latCell-latplt)**2 + (lonCell-lonplt)**2)
+        #latCell = fmesh.variables['latCell'][:]
+        #lonCell = fmesh.variables['lonCell'][:]
+        #xCell = fmesh.variables['xCell'][:]
+        #yCell = fmesh.variables['yCell'][:]
+        locname = (str(int(abs(coord[0]))) + 'S' + 
+                   str(int(abs(coord[1]-360))) + 'W') 
+        #latplt = -1.*coord[0]*deg2rad
+        #lonplt = (360.-coord[1])*deg2rad
+        #idx = np.argmin( (latCell-latplt)**2 + (lonCell-lonplt)**2)
         
         # calculate z from depths
         zmid,_,_ = zmidfrommesh(fmesh,cellidx=[idx],vartype='scalar')
@@ -408,8 +451,6 @@ def hovmoller(run,startyr,endyr,
         z = np.zeros((len(zbottom)+1))
         z[0] = zmid[0,0]+zh[0]
         z[1:] = zbottom
-        zlim[0] = np.max(z)
-        zlim[1] = np.min(z)
         z = z[0:fmesh.variables['maxLevelCell'][idx]]
         nz = len(z)
 
@@ -421,11 +462,14 @@ def hovmoller(run,startyr,endyr,
                 times[t] = yr+(mo-1.0)/12.0
            
                 datestr = '{0:04d}-{1:02d}'.format(yr, mo)
-                input_filename = ('{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index(run)]) 
+                input_filename = (
+                '{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(
+                            runpath[runname.index(run)]) 
                             + datestr + '-01.nc')
                 f = netCDF4.Dataset(input_filename, 'r')
                 for i,var in enumerate(varlist):
-                    data[i,1:,t] = f.variables[varname[vartitle.index(var)]][0,idx,:nz-1]
+                    data[i,1:,t] = (f.variables[varname[vartitle.index(var)]]
+                                    [0,idx,:nz-1])
                 
                 f.close()
                 t += 1
@@ -466,25 +510,31 @@ def hovmoller(run,startyr,endyr,
             data[0,:,i] = df['u_barotropic_sum'][i]
         for i,_ in enumerate(z):
             data[1,i,:-1] = df[zcol[i][:]][:]
-        zlim[0] = np.max(z)
-        zlim[1] = np.min(z[~np.isnan(data[1,:,0])])
         locname = transect_id
     
+    zlim[0] = min(zlim[0],np.max(z))
+    zlim[1] = max(zlim[1],np.min(z[~np.isnan(data[1,:,0])])) #zlim[1] = np.min(z)
+    print(zlim)
+ 
     filename = ( run + '_hovmoller_' + varlist[0] + varlist[1] + '_' +
                  locname + '_' + str(startyr) + '-' + str(endyr) )
     nrow=len(varlist)
     ncol=1
     data[np.isnan(data)] = 0
-    #print('t = ',np.shape(times[start_time_idx:end_time_idx+1]))
-    #print('z = ',np.shape(z))
-    #print('data = ',np.shape(data[0,1:,start_time_idx:end_time_idx])) 
     
     fig,axvar = plt.subplots(nrow,ncol,sharex=True)
+    if plot_pycnocline:
+        z_pyc = np.zeros((len(times)-1))
+        for ti in range(start_time_idx,end_time_idx-2):
+            z_pyc[ti] = z_pycnocline(z,
+                        data[varlist.index('T'),:,ti],
+                        data[varlist.index('S'),:,ti])
     for i,var in enumerate(varlist):
         
         cm = plt.get_cmap(varcmap[vartitle.index(var)]) 
         if limTrue:
-            cNorm  = colors.Normalize(vmin=varmin[vartitle.index(var)], vmax=varmax[vartitle.index(var)])
+            cNorm  = colors.Normalize(vmin=varmin[vartitle.index(var)], 
+                                      vmax=varmax[vartitle.index(var)])
         elif var[0] == 'u' or var[0] == 'v':
             vlim = np.max(np.abs(data[i,:,:]))
             cNorm  = colors.Normalize(vmin=-1*vlim, vmax=vlim)
@@ -493,6 +543,11 @@ def hovmoller(run,startyr,endyr,
                                       vmax=np.max(np.abs(data[i,:,:])))
         scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cm)
  
+        if plot_pycnocline and (var == 'T' or var == 'S' or var == 'rho'):
+            for ti in range(start_time_idx,end_time_idx-2):
+               pypyc = axvar[varlist.index('T')].plot(
+                       [times[ti],times[ti+1]],
+                       [z_pyc[ti],z_pyc[ti]],'-k')
         pc = axvar[i].pcolormesh(times[start_time_idx:end_time_idx+1], z, 
                                  data[i,1:,start_time_idx:end_time_idx], 
                                  cmap = cm, norm=cNorm) 
@@ -507,8 +562,7 @@ def hovmoller(run,startyr,endyr,
         cbar.set_label(varlabel[vartitle.index(var)])
         
         if i == 0:
-            print(runtitle[runname.index(run)] + ': ' + loctitle[loc.index(locname)])
-            axvar[i].set(title = runtitle[runname.index(run)] + ': ' + loctitle[loc.index(locname)])
+            axvar[i].set(title = runtitle[runname.index(run)] + ': ' + locname)
     
     print('save plot: ',savepath + filename)
     plt.savefig(savepath + filename + '.png')#,dpi=set_dpi)
@@ -671,9 +725,8 @@ def fluxgate(transect_id, yrrange = [50,51], morange = [1,13],
     fmesh = netCDF4.Dataset(meshpath[runname.index(run)])
     
     cellidx, idx, dist, transect_angle = pick_transect(option='by_index',
-                                    run=run,transect_name = transect_id,overwrite=overwrite) 
-                        #lon = [loc_xmin[loc.index(transect_id)],loc_xmax[loc.index(transect_id)]],
-                        #lat = [loc_ymin[loc.index(transect_id)],loc_ymax[loc.index(transect_id)]],
+                                         run=run,transect_name = transect_id,
+                                         overwrite=overwrite) 
     #nLevels = fmesh.dimensions['nVertLevels'][:]
     #cell1 = np.subtract(fmesh.variables['cellsOnEdge'][idx,0],1)
     #cell2 = np.subtract(fmesh.variables['cellsOnEdge'][idx,1],1)
@@ -1226,7 +1279,7 @@ def transect(pick_option, yr_incr, mo_incr, varlist,
 #    locname    name of the location which sets map limits, string
 #    savepath   directory where figure is to be saved, string
 #------------------------------------------------------------------------------
-def plot_zice_map(run = 'ISMF',locname = 'fris',savepath=savepath_nersc):
+def plot_zice_map(run = 'ISMF',region = 'fris',savepath=savepath_nersc):
 
     # set further parameters
     lat_N = -50 # northern limit of domain
@@ -1234,8 +1287,6 @@ def plot_zice_map(run = 'ISMF',locname = 'fris',savepath=savepath_nersc):
     if locname not in loc:
         print('locname is not defined')
         return
-    xmax = loc_xmax[loc.index(locname)]
-    ymin = loc_ymax[loc.index(locname)]
     size = loc_ptsize[loc.index(locname)]
     
     filename = 'fmesh_zice_' + locname
@@ -1248,34 +1299,35 @@ def plot_zice_map(run = 'ISMF',locname = 'fris',savepath=savepath_nersc):
     # open data files
     fmesh = netCDF4.Dataset(meshpath[runname.index(run)])
     
-    # import variables from file
-    latCell  = fmesh.variables['latCell'][:]
-    lonCell  = fmesh.variables['lonCell'][:]
-    idxCell  = fmesh.variables['indexToCellID'][:]
-    xCell    = fmesh.variables['xCell'][:]
-    yCell    = fmesh.variables['yCell'][:]
-    kmax     = fmesh.variables['maxLevelCell'][:]
-    zmax     = np.multiply(-1,fmesh.variables['bottomDepth'][:])
-    zice     = fmesh.variables['landIceDraft'][0,:]
-    
     # northern limit for subplots
-    idx_N = np.argwhere((xCell<xmax) & (xCell > 0) & (yCell < 0) & (yCell > -1.5e6) & (latCell < lat_N*deg2rad))
-    logical_N = idx_N[:,0]
-    x = xCell[logical_N]
-    y = yCell[logical_N]
-    idx = idxCell[logical_N]
-
+    idx = pick_from_region(region = region,run = run,
+                             plot_map = False, overwrite = False, 
+                             savepath = savepath)
+#np.argwhere((xCell<xmax) & (xCell > 0) & (yCell < 0) & (yCell > -1.5e6) & (latCell < lat_N*deg2rad))
+    #logical_N = idx_N[:,0]
+    # import variables from file
+    xCell    = fmesh.variables['xCell'][idx]
+    yCell    = fmesh.variables['yCell'][idx]
+    zmax     = np.multiply(-1,fmesh.variables['bottomDepth'][idx])
+    zice     = fmesh.variables['landIceDraft'][0,idx]
+    
     fig = plt.figure()
     
     ax = fig.gca()
     ax.set_aspect('equal')
-    gl2 = plt.tricontour(yCell[logical_N].flatten(), xCell[logical_N].flatten(), 
-                         zmax[logical_N].flatten(), [-1800], colors = 'k', linewidths = 2)
-    gl1 = plt.tricontour(yCell[logical_N].flatten(), xCell[logical_N].flatten(), 
-                         zice[logical_N].flatten(), [-10], colors = 'b', linewidths = 2)
-    
-    cntr1 = plt.scatter(y, x, s=size, c=zice[logical_N], marker = '.',
-                        cmap = "cmo.deep") 
+    gl2 = plt.tricontour(yCell, xCell, zmax, [-1800], 
+                         colors = 'k', linewidths = 2)
+    gl1 = plt.tricontour(yCell, xCell, zice, [-10], 
+                         colors = 'b', linewidths = 2)
+    cntr1 = plt.scatter(yCell, xCell, s=size, c=zice, 
+                        marker = '.', cmap = "cmo.deep") 
+    #gl2 = plt.tricontour(yCell[logical_N].flatten(), xCell[logical_N].flatten(), 
+    #                     zmax[logical_N].flatten(), [-1800], colors = 'k', linewidths = 2)
+    #gl1 = plt.tricontour(yCell[logical_N].flatten(), xCell[logical_N].flatten(), 
+    #                     zice[logical_N].flatten(), [-10], colors = 'b', linewidths = 2)
+    #
+    #cntr1 = plt.scatter(y, x, s=size, c=zice[logical_N], marker = '.',
+    #                    cmap = "cmo.deep") 
     
     cbar1 = fig.colorbar(cntr1)
     #cbar1.set_label(var)
@@ -1284,7 +1336,7 @@ def plot_zice_map(run = 'ISMF',locname = 'fris',savepath=savepath_nersc):
     return
 
 def calc_stresscurl_t(var,run=['ISMF'],yrrange=[70,71],
-                      locname='wedwang',coord='lat',
+                      region='wedwang',coord='lat',
                       overwrite=False,map_output=False,
                       savepath=savepath_nersc):
     filename = run[0]
@@ -1304,65 +1356,39 @@ def calc_stresscurl_t(var,run=['ISMF'],yrrange=[70,71],
             print('skipping file')
             return
     
-    xmin = loc_xmin[loc.index(locname)]
-    xmax = loc_xmax[loc.index(locname)]
-    ymin = loc_ymin[loc.index(locname)]
-    ymax = loc_ymax[loc.index(locname)]
     # open data files
     fmesh = netCDF4.Dataset(meshpath[runname.index(run)])
     # import variables from file
-    xCell    = fmesh.variables['xCell'][:]
-    yCell    = fmesh.variables['yCell'][:]
-    latCell  = fmesh.variables['latCell'][:]
-    lonCell  = fmesh.variables['lonCell'][:]
-    zmax     = np.multiply(-1,fmesh.variables['bottomDepth'][:])
-    zice     = fmesh.variables['landIceDraft'][0,:]
+    idx = pick_from_region(region=region,run=run,plot_map=map_output)
+    xCell    = fmesh.variables['xCell'][idx]
+    yCell    = fmesh.variables['yCell'][idx]
+    #latCell  = fmesh.variables['latCell'][:]
+    #lonCell  = fmesh.variables['lonCell'][:]
+    #zmax     = np.multiply(-1,fmesh.variables['bottomDepth'][:])
+    #zice     = fmesh.variables['landIceDraft'][0,:]
     
-    idx_A = np.argwhere((xCell < 2.5e6) & (xCell > 0) & (yCell < 0) & (yCell > -1.5e6) & (latCell < lat_N*deg2rad))
-    logical_A = idx_A[:,0]
-    print('ndom=',len(logical_A)) 
-    if coord == 'xy':
-        idx_loc = np.argwhere((xCell < xmax) & (xCell > xmin) 
-                               & (yCell < ymax) & (yCell > ymin))
-    elif coord == 'lat':
-        idx_loc = np.argwhere((lonCell < xmax*deg2rad) & (lonCell > xmin*deg2rad) 
-                           & (latCell < ymax*deg2rad) & (latCell > ymin*deg2rad))
-    
-    logical_N = idx_loc[:,0]
-    x = xCell[logical_N]
-    y = yCell[logical_N]
-    print('nx = ',len(x),', ny = ',len(y))
-    
-    dx = (np.max(x)-np.min(x))/sqrt(len(x))
-    dy = (np.max(y)-np.min(y))/sqrt(len(x))
-    #dx = np.min(x - x[0])
-    #dy = np.min(y - y[0])
-    print('dx= ',dx,', dy = ',dy)
-    x_reg = np.arange(np.min(x),np.max(x)+dx,dx)
-    y_reg = np.arange(np.min(y),np.max(y)+dx,dy)
-    print('x2 = ',len(x_reg),', y2 = ',len(y_reg))
+    #idx_A = np.argwhere((xCell < 2.5e6) & (xCell > 0) & (yCell < 0) & (yCell > -1.5e6) & (latCell < lat_N*deg2rad))
+    #logical_A = idx_A[:,0]
+    #print('ndom=',len(logical_A)) 
+    #if coord == 'xy':
+    #    idx_loc = np.argwhere((xCell < xmax) & (xCell > xmin) 
+    #                           & (yCell < ymax) & (yCell > ymin))
+    #elif coord == 'lat':
+    #    idx_loc = np.argwhere((lonCell < xmax*deg2rad) & (lonCell > xmin*deg2rad) 
+    #                       & (latCell < ymax*deg2rad) & (latCell > ymin*deg2rad))
+    #
+    #logical_N = idx_loc[:,0]
+    #x = xCell[logical_N]
+    #y = yCell[logical_N]
+    #print('nx = ',len(x),', ny = ',len(y))
+   
+    # Create regularly spaced grid 
+    dx = (np.max(xCell)-np.min(xCell))/sqrt(len(xCell))
+    dy = (np.max(yCell)-np.min(yCell))/sqrt(len(xCell))
+    x_reg = np.arange(np.min(xCell),np.max(xCell)+dx,dx)
+    y_reg = np.arange(np.min(yCell),np.max(yCell)+dx,dy)
     xi,yi = np.meshgrid(x_reg,y_reg)
-    print('xi = ',np.shape(xi))
-    #reg_vector_x = np.ndarray.flatten(reg_mesh_x)
-    #reg_vector_y = np.ndarray.flatten(reg_mesh_y)
-    #print('nx2 = ',len(reg_vector_x),', ny2 = ',len(reg_vector_y))
 
-    if not os.path.exists(savepath + 'bathy_' + locname + '.png'):
-        fig = plt.figure()
-        cntr1 = plt.tricontourf(yCell[logical_A].flatten(), xCell[logical_A].flatten(), 
-                                zmax[logical_A].flatten(), 20, cmap="viridis")
-        plt.plot(y,x, 'o', color = 'white', 
-                 markersize = 4, fillstyle = 'none')#, alpha = 0.5)
-        plt.plot(yi,xi, 'o', color = 'red', 
-                 markersize = 4)
-        cntr = plt.tricontour(yCell[logical_A].flatten(), xCell[logical_A].flatten(), 
-                               zice[logical_A].flatten(), [-10], colors = 'k')
-        plt.clim([varmin[vartitle.index('z')], varmax[vartitle.index('z')]])
-        plt.axis('equal')
-        cbar = plt.colorbar(cntr1)
-        cbar.set_label('Depth (m)')    
-        plt.savefig(savepath + 'bathy_' + locname + '.png',dpi=set_dpi)
-        plt.close()
     curl_t=[]
     if runcmp:
         curl_t_cmp=[]
@@ -1383,13 +1409,14 @@ def calc_stresscurl_t(var,run=['ISMF'],yrrange=[70,71],
             times = (yr+(mo-1.0)/12.0)
             datestr = '{0:04d}-{1:02d}'.format(yr, mo)
             for k,run_incr in enumerate(run):
-                filein = ('{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index(run_incr)]) 
+                filein = ('{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(
+                           runpath[runname.index(run_incr)]) 
                           + datestr + '-01.nc')
                 f = netCDF4.Dataset(filein, 'r')
-                taux = f.variables['timeMonthly_avg_windStressZonal'][0,logical_N]
-                tauy = f.variables['timeMonthly_avg_windStressMeridional'][0,logical_N]
-                taux_i = interp.griddata((x,y),taux,(xi,yi),method='linear')
-                tauy_i = interp.griddata((x,y),tauy,(xi,yi),method='linear')
+                taux = f.variables['timeMonthly_avg_windStressZonal']     [0,idx]
+                tauy = f.variables['timeMonthly_avg_windStressMeridional'][0,idx]
+                taux_i = interp.griddata((xCell,yCell),taux,(xi,yi),method='linear')
+                tauy_i = interp.griddata((xCell,yCell),tauy,(xi,yi),method='linear')
                 dtauy_dx = nan*np.ones((len(x_reg)-1,len(y_reg)-1))
                 dtaux_dy = nan*np.ones((len(x_reg)-1,len(y_reg)-1))
                 for i in range(1,len(x_reg)):
@@ -1615,84 +1642,91 @@ def plot_surf_var(var,yr,mo,run=['ISMF'],locname='fris',plottype = 'abs',
        filein2 = '{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index(run[1])]) + datestr + '-01.nc'
        f2 = netCDF4.Dataset(filein2, 'r')
     
-    # import variables from file
-    latCell  = fmesh.variables['latCell'][:]
-    lonCell  = fmesh.variables['lonCell'][:]
-    idxCell  = fmesh.variables['indexToCellID'][:]
-    xCell    = np.divide(fmesh.variables['xCell'][:],1e3)
-    yCell    = np.divide(fmesh.variables['yCell'][:],1e3)
-    kmax     = fmesh.variables['maxLevelCell'][:]
-    zmax     = np.multiply(-1,fmesh.variables['bottomDepth'][:])
-    zh       = fmesh.variables['layerThickness'][0,:]
-    zice     = fmesh.variables['landIceDraft'][0,:]
-    landicemask  = fmesh.variables['landIceMask'][0,:]
-    
     # northern limit for subplots
-    idx_N = np.argwhere((xCell<loc_xmax[loc.index(locname)]/1e3) & 
-                        (xCell > 0) & 
-                        (yCell < 0) & 
-                        (yCell > loc_ymin[loc.index(locname)]/1e3) & 
-                        (latCell < lat_N*deg2rad))
-    logical_N = idx_N[:,0]
-    x = xCell[logical_N]
-    y = yCell[logical_N]
-    idx = idxCell[logical_N]
-    
+    idx = pick_from_region(region=locname,run=run[0])
+    print('Number of points in domain = ',len(idx))
+ 
     # calculate z from depths
     zmid,_,_ = zmidfrommesh(fmesh,cellidx=idx)
+    # import variables from file
+    latCell  = fmesh.variables['latCell'][idx]
+    lonCell  = fmesh.variables['lonCell'][idx]
+    #idxCell  = fmesh.variables['indexToCellID'][:]
+    xCell    = np.divide(fmesh.variables['xCell'][idx],1e3)
+    yCell    = np.divide(fmesh.variables['yCell'][idx],1e3)
+    kmax     = fmesh.variables['maxLevelCell'][idx]
+    zmax     = np.multiply(-1,fmesh.variables['bottomDepth'][idx])
+    #zh       = fmesh.variables['layerThickness'][0,:]
+    zice     = fmesh.variables['landIceDraft'][0,idx]
+    landicemask  = fmesh.variables['landIceMask'][0,idx]
     
     # get data at specified depth
-    zidx = np.zeros(len(logical_N),)
+    zidx = np.zeros(len(idx),)
     # define the index for specifed depth
     if level == bad_data:
         if zab:
             if z == 0:
-                zidx = kmax[logical_N]-1
+                zidx = kmax-1
             else:
-                zeval = np.add(zmax[logical_N],z)
-                for i,idx in enumerate(logical_N):
-                    #zidx[i] = int(np.argmin(np.abs(np.subtract(zmid[idx,:],zeval))))
+                zeval = np.add(zmax,z)
+                for i,_ in enumerate(idx):
                     zidx[i] = int(np.argmin(np.abs(np.subtract(zmid[i,:],zeval))))
         else:
-            for i,idx in enumerate(logical_N):
-                #zidx[i] = int(np.argmin(np.abs(np.subtract(zmid[idx,:],-1*z))))
+            for i,_ in enumerate(idx):
                 zidx[i] = int(np.argmin(np.abs(np.subtract(zmid[i,:],-1*z))))
         
         # get data
-        icemask = (landicemask[logical_N] == 1)
+        icemask = (landicemask == 1)
         if var == 'U':
-            u = f.variables['timeMonthly_avg_velocityZonal'][0,logical_N,:]
-            v = f.variables['timeMonthly_avg_velocityMeridional'][0,logical_N,:]
+            u = f.variables['timeMonthly_avg_velocityZonal'][0,idx,:]
+            v = f.variables['timeMonthly_avg_velocityMeridional'][0,idx,:]
             uz = np.zeros(len(zidx),)
             vz = np.zeros(len(zidx),)
-            for i,idx in enumerate(zidx):
-                uz[i] = u[i,int(idx)]
-                vz[i] = v[i,int(idx)]
+            for i,j in enumerate(zidx):
+                uz[i] = u[i,int(j)]
+                vz[i] = v[i,int(j)]
             bad_idx = (uz > bad_data) #| (heading != bad_data2)
             dataz = np.sqrt(np.add(np.square(uz),np.square(vz)))
             heading = np.divide(np.arctan2(uz,vz),deg2rad)
         elif var == 'tau':
-            uz = f.variables['timeMonthly_avg_windStressZonal'][0,logical_N]
-            vz = f.variables['timeMonthly_avg_windStressMeridional'][0,logical_N]
+            uz = f.variables['timeMonthly_avg_windStressZonal'][0,idx]
+            vz = f.variables['timeMonthly_avg_windStressMeridional'][0,idx]
             bad_idx = (uz > bad_data) #| (heading != bad_data2)
             dataz = np.sqrt(np.add(np.square(uz),np.square(vz)))
             heading = np.divide(np.arctan2(uz,vz),deg2rad)
         elif var == 'ssh':
-            dataz = f.variables[varname[vartitle.index(var)]][0,logical_N]
-            bad_idx = ((dataz > bad_data) | (landicemask[logical_N] == 1))
+            dataz = f.variables[varname[vartitle.index(var)]][0,idx]
+            bad_idx = ((dataz > bad_data) | (landicemask == 1))
+        elif var == 'z_pyc':
+            T = f.variables[varname[vartitle.index('T')]][0,idx,:]
+            S = f.variables[varname[vartitle.index('S')]][0,idx,:]
+            ncell,nz = np.shape(T)
+            dataz = np.zeros((ncell))
+            #i = 0
+            #dataz[i] = z_pycnocline(zmid[i,:kmax[i]],
+            #                        T   [i,:kmax[i]],
+            #                        S   [i,:kmax[i]], diags=True)
+            for i in range(10):#range(ncell):
+                dataz[i] = z_pycnocline(zmid[i,:kmax[i]],
+                                        T   [i,:kmax[i]],
+                                        S   [i,:kmax[i]],
+                                        zmin = -500.,cellidx=i)#,diags=True)
+            print('Number of nans in z_pyc:',np.sum(np.isnan(dataz)))
+            bad_idx = ~np.isnan(dataz)
+            print('z_pyc mean = ',np.mean(dataz[bad_idx]))
         else:
-            data = f.variables[varname[vartitle.index(var)]][0,logical_N,:]
+            data = f.variables[varname[vartitle.index(var)]][0,idx,:]
             if (var not in surfvar):
                 dataz = np.zeros(len(zidx),)
-                for i,idx in enumerate(zidx):
-                    dataz[i] = data[i,int(idx)]
+                for i,j in enumerate(zidx):
+                    dataz[i] = data[i,int(j)]
             else:
                 dataz = data
             bad_idx = (dataz > bad_data) #| (heading != bad_data2)
     
     # get the depth at which data equals value specficied in level
     else:
-        data = f.variables[varname[vartitle.index(var)]][0,logical_N,:]
+        data = f.variables[varname[vartitle.index(var)]][0,idx,:]
         dataz = np.zeros(len(zidx),)
         icemask = np.zeros(len(zidx),dtype=bool)
         sfmask = np.zeros(len(zidx),dtype=bool)
@@ -1706,7 +1740,7 @@ def plot_surf_var(var,yr,mo,run=['ISMF'],locname='fris',plottype = 'abs',
                 sfmask[i] = True
             #dataz[i] = max(zmid[i,:])
         bad_idx = (dataz > bad_data) #| (heading != bad_data2)
-        dataz = dataz + zice[logical_N]
+        dataz = dataz + zice
         dataz = np.multiply(dataz,-1.)
  
     # solve for difference between fields across model runs
@@ -1716,14 +1750,14 @@ def plot_surf_var(var,yr,mo,run=['ISMF'],locname='fris',plottype = 'abs',
             heading1 = heading
             uz1 = uz
             vz1 = vz
-            u = f2.variables['timeMonthly_avg_velocityZonal'][0,logical_N,:]
-            v = f2.variables['timeMonthly_avg_velocityMeridional'][0,logical_N,:]
+            u = f2.variables['timeMonthly_avg_velocityZonal']     [0,idx,:]
+            v = f2.variables['timeMonthly_avg_velocityMeridional'][0,idx,:]
             uz2 = np.zeros(len(x),)
             vz2 = np.zeros(len(x),)
             i = 10
-            for i,idx in enumerate(zidx):
-                uz2[i] = u[i,int(idx)]
-                vz2[i] = v[i,int(idx)]
+            for i,j in enumerate(zidx):
+                uz2[i] = u[i,int(j)]
+                vz2[i] = v[i,int(j)]
             #for i in range(0,len(x),1):
             #    uz2[i] = u[i,zidx]
             #    vz2[i] = v[i,zidx]
@@ -1737,8 +1771,8 @@ def plot_surf_var(var,yr,mo,run=['ISMF'],locname='fris',plottype = 'abs',
             heading1 = heading
             uz1 = uz
             vz1 = vz
-            uz2 = f2.variables['timeMonthly_avg_windStressZonal'][0,logical_N]
-            vz2 = f2.variables['timeMonthly_avg_windStressMeridional'][0,logical_N]
+            uz2 = f2.variables['timeMonthly_avg_windStressZonal']     [0,idx]
+            vz2 = f2.variables['timeMonthly_avg_windStressMeridional'][0,idx]
             bad_idx = (uz2 > bad_data) #| (heading != bad_data2)
             dataz2 = np.sqrt(np.add(np.square(uz2),np.square(vz2)))
             heading2 = np.divide(np.arctan2(uz2,vz2),deg2rad)
@@ -1747,10 +1781,10 @@ def plot_surf_var(var,yr,mo,run=['ISMF'],locname='fris',plottype = 'abs',
             uz = np.subtract(uz1,uz2)
             vz = np.subtract(vz1,vz2)
         elif var == 'ssh':
-            dataz2 = f2.variables['timeMonthly_avg_ssh'][0,logical_N]
+            dataz2 = f2.variables['timeMonthly_avg_ssh'][0,idx]
             dataz = np.subtract(dataz1,dataz2)
         else:
-            data2 = f2.variables[varname[vartitle.index(var)]][0,logical_N,:]
+            data2 = f2.variables[varname[vartitle.index(var)]][0,idx,:]
             if (var not in surfvar):
                 dataz2 = np.zeros(len(data2),)
                 print('load data2 for clevel')
@@ -1781,7 +1815,7 @@ def plot_surf_var(var,yr,mo,run=['ISMF'],locname='fris',plottype = 'abs',
             #                s = size, c = dataz[bad_idx], marker = '.',
             #                cmap = cmap1)#,vmin=-0.01,vmax=0.01)
             #else:
-        cntr1 = plt.scatter(y[bad_idx], x[bad_idx], 
+        cntr1 = plt.scatter(yCell[bad_idx], xCell[bad_idx], 
                     s = size, c = dataz[bad_idx], marker = '.',
                     cmap = cmap1) #, norm = LogNorm())
         if varlim:
@@ -1803,23 +1837,23 @@ def plot_surf_var(var,yr,mo,run=['ISMF'],locname='fris',plottype = 'abs',
         ax.set_aspect('equal')
         
         # plot an arbitrarily deep contour as a rough marker of continental shelf break
-        gl2 = plt.tricontour(yCell[logical_N].flatten(), xCell[logical_N].flatten(), 
-                             zmax[logical_N].flatten(), [-1800], colors = 'k', linewidths = 2)
+        gl2 = plt.tricontour(yCell.flatten(), xCell.flatten(), 
+                             zmax.flatten(), [-1800], colors = 'k', linewidths = 2)
         # plot a fairly shallow ice contour as a marker of ice shelf front
-        #gl1 = plt.tricontour(yCell[logical_N].flatten(), xCell[logical_N].flatten(), 
-        #                     zice[logical_N].flatten(), [-1], colors = 'b', linewidths = 2)
-        #gl1 = plt.tricontour(yCell[logical_N].flatten(), xCell[logical_N].flatten(), 
-        #                     landicemask[logical_N].flatten(), [0], colors = 'b', linewidths = 2)
+        #gl1 = plt.tricontour(yCell.flatten(), xCell.flatten(), 
+        #                     zice.flatten(), [-1], colors = 'b', linewidths = 2)
+        #gl1 = plt.tricontour(yCell.flatten(), xCell.flatten(), 
+        #                     landicemask.flatten(), [0], colors = 'b', linewidths = 2)
         
         if level > bad_data and not runcmp:
             # outline points where the contour is below seafloor
-            cntro = plt.scatter(y[sfmask], x[sfmask], 
-                            s=size, marker = '.',
-                            facecolor = 'none',edgecolors = 'k')
+            cntro = plt.scatter(yCell[sfmask], xCell[sfmask], 
+                                s=size, marker = '.',
+                                facecolor = 'none',edgecolors = 'k')
             # outline points where the contour is above ice base
-        cntro = plt.scatter(y[icemask], x[icemask], 
-                        s=size, marker = '.',
-                        facecolor = 'none',edgecolors = 'b')
+        cntro = plt.scatter(yCell[icemask], xCell[icemask], 
+                            s=size, marker = '.',
+                            facecolor = 'none',edgecolors = 'b')
              
         cbar1 = fig.colorbar(cntr1)
         if level > bad_data:
@@ -1833,14 +1867,15 @@ def plot_surf_var(var,yr,mo,run=['ISMF'],locname='fris',plottype = 'abs',
         if plottype == 'head':
             fig = plt.figure()
             if runcmp:
-                cntr2 = plt.scatter(y[bad_idx], x[bad_idx],
-                                s=size, c=heading[bad_idx],  marker = '.', cmap="cmo.balance",vmin=-10,vmax=10) 
+                cntr2 = plt.scatter(yCell[bad_idx], xCell[bad_idx],
+                                    s=size, c=heading[bad_idx], marker = '.', 
+                                    cmap="cmo.balance",vmin=-10,vmax=10) 
             else:
                 cntr2 = plt.scatter(y[bad_idx], x[bad_idx],
                                 s=size, c=heading[bad_idx],  marker = '.', cmap="cmo.phase", 
                                 vmin = -180, vmax = 180)
-            gl2 = plt.tricontour(yCell[logical_N].flatten(), xCell[logical_N].flatten(), 
-                                   zice[logical_N].flatten(), [-10], colors = 'k', linewidths = 2)
+            gl2 = plt.tricontour(yCell.flatten(), xCell.flatten(), 
+                                 zice.flatten(), [-10], colors = 'k', linewidths = 2)
             ax = fig.gca()
             ax.set_aspect('equal')
             cbar2 = fig.colorbar(cntr2)
@@ -1849,12 +1884,12 @@ def plot_surf_var(var,yr,mo,run=['ISMF'],locname='fris',plottype = 'abs',
         
         elif plottype == 'quiver':
             fig = plt.figure()
-            cntr1 = plt.tricontourf(y.flatten(), x.flatten(), 
-                                    zmax[logical_N].flatten(), 20, 
+            cntr1 = plt.tricontourf(yCell.flatten(), xCell.flatten(), 
+                                    zmax.flatten(), 20, 
                                     cmap="cmo.deep")
             qvr = plt.quiver(y[bad_idx], x[bad_idx], uz[bad_idx], vz[bad_idx],color='m')
-            gl2 = plt.tricontour(yCell[logical_N].flatten(), xCell[logical_N].flatten(), 
-                                   zice[logical_N].flatten(), [-10], colors = 'b', linewidths = 2)
+            gl2 = plt.tricontour(yCell.flatten(), xCell.flatten(), 
+                                 zice.flatten(), [-10], colors = 'b', linewidths = 2)
             if varlim:
                 plt.clim([varmin[vartitle.index('z')], varmax[vartitle.index('z')]])
             ax = fig.gca()
@@ -1868,8 +1903,6 @@ def plot_surf_var(var,yr,mo,run=['ISMF'],locname='fris',plottype = 'abs',
     else:
         plt.title(run[0] + ': ' + datestr)
     
-    #ax.set_ylim([loc_ymin[loc.index(locname)]/1e3,loc_ymax[loc.index(locname)]/1e3])
-    #ax.set_xlim([loc_xmin[loc.index(locname)]/1e3,loc_xmax[loc.index(locname)]/1e3])
     ax.set_yticklabels([])
     ax.set_xticklabels([])
     plt.savefig(savepath + '/' + filename + '.png',dpi=set_dpi)
