@@ -14,45 +14,40 @@ import matplotlib.pyplot as plt
 import scipy.signal
 from matplotlib import cm
 
-fmesh=netCDF4.Dataset('/project/projectdirs/acme/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc')
+fmesh=netCDF4.Dataset('/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc')
 latCell = fmesh.variables['latCell'][:]
 lonCell = fmesh.variables['lonCell'][:]
 xCell = fmesh.variables['xCell'][:]
 yCell = fmesh.variables['yCell'][:]
 depths = fmesh.variables['refBottomDepth'][:]
 areaCell = fmesh.variables['areaCell'][:]
-z = np.zeros(depths.shape)
-z[0] = -0.5 * depths[0]
-z[1:] = -0.5 * (depths[0:-1] + depths[1:])
+
+
 pii=3.14159
 
 
 # ---- Choose time(s) -----
-yrs=(50,)
+yrs=(95,)
 #yrs = np.arange(95,102,1)
-mos=(3,)
+mos=(1,)
 #mos=np.arange(1,13,1)
 # -------------------------
 
 
 # ---- Choose spatial extent -----
-#idx = np.nonzero(np.logical_and(np.logical_and(latCell<-77.2/180.0*pii, latCell>-78.5/180.0*pii), np.logical_and(lonCell>317.0/360.0*2.0*pii, lonCell<326.0/360.0*2*pii)))[0]  #Darelius 2016 fig 3
+idx = np.nonzero(np.logical_and(np.logical_and(latCell<-77.4/180.0*pii, latCell>-78.2/180.0*pii), np.logical_and(lonCell>315.0/360.0*2.0*pii, lonCell<327.0/360.0*2*pii)))[0]  #Darelius 2016 fig 3
 #idx = np.nonzero(np.logical_and(np.logical_and(latCell<-75.0/180.0*pii, latCell>-78.0/180.0*pii), np.logical_and(lonCell>320.0/360.0*2.0*pii, lonCell<330.0/360.0*2*pii)))[0]  #filchner trough in front of ice shelf
 #idx = np.nonzero(np.logical_and(np.logical_and(latCell<-78.0/180.0*pii, latCell>-85.0/180.0*pii), np.logical_and(lonCell>315.0/360.0*2.0*pii, lonCell<330.0/360.0*2*pii)))[0]  #filchner ice shelf
 #idx = np.nonzero(np.logical_and(np.logical_and(latCell<-70.0/180.0*pii, latCell>-85.0/180.0*pii), np.logical_and(lonCell>300.0/360.0*2.0*pii, lonCell<350.0/360.0*2*pii)))[0]  #entire weddell
-idx = np.nonzero(np.logical_and(np.logical_and(latCell<-70.0/180.0*pii, latCell>-85.0/180.0*pii), np.logical_and(lonCell>270.0/360.0*2.0*pii, lonCell<350.0/360.0*2*pii)))[0]  #entire weddell wider
-idx = np.nonzero( (latCell<-60.0/180.0*pii) * (latCell>-85.0/180.0*pii) * np.logical_or(lonCell>280.0/360.0*2.0*pii, lonCell<80.0/360.0*2*pii))[0]; size=1.4; fsz=(15,9)  # weddell to Amery 
-idx = np.nonzero( (latCell<-50.0/180.0*pii) )[0] # SO
+#idx = np.nonzero(np.logical_and(np.logical_and(latCell<-70.0/180.0*pii, latCell>-85.0/180.0*pii), np.logical_and(lonCell>270.0/360.0*2.0*pii, lonCell<350.0/360.0*2*pii)))[0]  #entire weddell wider
+#idx = np.nonzero( (latCell<-60.0/180.0*pii) * (latCell>-85.0/180.0*pii) * np.logical_or(lonCell>280.0/360.0*2.0*pii, lonCell<80.0/360.0*2*pii))[0]; size=1.4; fsz=(15,9)  # weddell to Amery 
+#idx = np.nonzero( (latCell<-50.0/180.0*pii) )[0] # SO
 # -------------------------
 
 
 # ---- Choose run directory ----
-#path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/run'
-#path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF.T62_oEC60to30v3wLI.cori-knl/run'
-#path='/global/cscratch1/sd/hoffman2/acme_scratch/edison/archive/20190306.A_WCYCL1850-DIB-ISMF_CMIP6.ne30_oECv3wLI.edison/ocn/hist'
-path='/global/cscratch1/sd/hoffman2/acme_scratch/edison/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/run'
-path='/global/cscratch1/sd/hoffman2/acme_scratch/edison/archive/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/ocn/hist'
-path='/global/cscratch1/sd/kehoch/acme_scratch/cori-knl/20190304.GMPAS-IAF.T62_oEC60to30v3wLI.cori-knl/run'
+path='/project/projectdirs/m3412/simulations/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist/'
+#path='/project/projectdirs/m3412/simulations/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/ocn/hist/'
 # -------------------------
 
 
@@ -67,7 +62,7 @@ plt.plot(yCell[idx], xCell[idx], 'r.')
 fig1 = plt.figure(1, facecolor='w') # TS
 nrow=1
 ncol=1
-doTS=False
+doTS=True
 
 fig2 = plt.figure(2, facecolor='w') # velo
 doVelo=False
@@ -75,17 +70,36 @@ doVelo=False
 figFW = plt.figure(3, facecolor='w') # FW sfc budget
 #figFW2 = plt.figure(4, facecolor='w') # FW sfc budget
 doFW=True
+doFW=False
+
+nVertLev = len(fmesh.dimensions['nVertLevels'])
+zs = np.zeros((len(idx), nVertLev))
+cnt=0
+for i in idx:
+   maxLevelCell=fmesh.variables['maxLevelCell'][i]
+   bottomDepth = fmesh.variables['bottomDepth'][i]
+   layerThickness = fmesh.variables['layerThickness'][0, i, :maxLevelCell]
+   thicknessSum = layerThickness.sum()
+   thicknessCumSum = layerThickness.cumsum()
+   zSurf = bottomDepth - thicknessSum
+   zLayerBot = zSurf - thicknessCumSum
+   z = zLayerBot + 0.5 * layerThickness
+   zs[cnt, :maxLevelCell] = z
+   cnt += 1
+
+
 
 for yr in yrs:
  for mo in mos:
   print("yr=",yr, "mo=", mo)
-  #f=netCDF4.Dataset('{0}/mpaso.hist.am.timeSeriesStatsMonthly.{1:04d}-{2:02d}-01.nc'.format(path, yr, mo), 'r')
+  f=netCDF4.Dataset('{0}/mpaso.hist.am.timeSeriesStatsMonthly.{1:04d}-{2:02d}-01.nc'.format(path, yr, mo), 'r')
 #  f=netCDF4.Dataset('{0}/mpaso.hist.am.timeSeriesStatsMonthly.mean.0050-0059.nc'.format(path), 'r')
-  f=netCDF4.Dataset('/global/cscratch1/sd/hoffman2/acme_scratch/analysis/mpaso.hist.am.timeSeriesStatsMonthly.mean.0080-0089.G-IAF.nc', 'r')
+  #f=netCDF4.Dataset('/global/cscratch1/sd/hoffman2/acme_scratch/analysis/mpaso.hist.am.timeSeriesStatsMonthly.mean.0080-0089.G-IAF.nc', 'r')
 
   if doTS:
    fig1.clf()
    axTS = fig1.add_subplot(nrow, ncol, 1)
+   plt.sca(axTS)
    plt.ylabel('temperature (deg. C)')
    plt.xlabel('salinity (psu)')
    plt.grid()
@@ -97,10 +111,14 @@ for yr in yrs:
    # get data
    Ts = T[0,idx,:]
    Ss = S[0,idx,:]
-   sc=axTS.scatter(Ss[:], Ts[:], s=1, c=np.tile(z, (len(idx),1)), vmin=-700, vmax=0.0)
+#   Ts[zs>-200.0]=0.0; Ss[zs>-200.0]=0.0 # remove shallow values
+   cmap = plt.cm.get_cmap('viridis', 64)
+   cmap.set_over('0.8')
+   sc=axTS.scatter(Ss[:], Ts[:], s=1, c=zs, vmin=-700, vmax=-200.0, cmap=cmap)
    
-   axTS.set_ylim([-2.6,2.0])
-   axTS.set_xlim([33.0,34.8])
+   #axTS.set_ylim([-2.6,2.0])
+   #axTS.set_xlim([33.0,34.8])
+   axTS.set_ylim([-2.35,-1.4]); axTS.set_xlim([34.1,34.75])  # Darelius 2016 range
    plt.colorbar(sc)
    
    plt.plot([34.0, 34.0], [-1.85, 0.2], 'k:')

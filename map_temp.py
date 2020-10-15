@@ -46,9 +46,9 @@ path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF-
 diffpath = False
 #diffpath='/global/cscratch1/sd/hoffman2/acme_scratch/edison/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/run'
 
-years = np.arange(60,115,1)
-#months = np.arange(1,13,1)
-months = np.arange(1,2,1)
+years = np.arange(60,116,1)
+months = np.arange(1,13,1)
+#months = np.arange(1,2,1)
 nt = len(years)*len(months)
 
 

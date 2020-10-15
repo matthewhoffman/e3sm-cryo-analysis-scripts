@@ -24,14 +24,14 @@ pii=3.14159
 
 
 size=28
-fsz=(7,5)
+fsz=(14,8)
 #idx = np.nonzero(np.logical_and(np.logical_and(latCell<-75.0/180.0*pii, latCell>-78.0/180.0*pii), np.logical_and(lonCell>320.0/360.0*2.0*pii, lonCell<330.0/360.0*2*pii)))[0]  #filchner trough in front of ice shelf
 #idx = np.nonzero(np.logical_and(np.logical_and(latCell<-78.0/180.0*pii, latCell>-85.0/180.0*pii), np.logical_and(lonCell>315.0/360.0*2.0*pii, lonCell<330.0/360.0*2*pii)))[0]  #filchner ice shelf
 #idx = np.nonzero(np.logical_and(np.logical_and(latCell<-70.0/180.0*pii, latCell>-85.0/180.0*pii), np.logical_and(lonCell>300.0/360.0*2.0*pii, lonCell<350.0/360.0*2*pii)))[0]  #entire weddell
 #idx = np.nonzero(np.logical_and(np.logical_and(latCell<-70.0/180.0*pii, latCell>-85.0/180.0*pii), np.logical_and(lonCell>310.0/360.0*2.0*pii, lonCell<350.0/360.0*2*pii)))[0]  #eastern weddell
 idx = np.nonzero( (latCell<-65.0/180.0*pii) * (latCell>-85.0/180.0*pii) * np.logical_or(lonCell>280.0/360.0*2.0*pii, lonCell<20.0/360.0*2*pii))[0]; size=6;  #entire weddell+
-idx = np.nonzero( (latCell<-60.0/180.0*pii) )[0]; size=1; sz=(14,10); #entire SO
-idx = np.nonzero( (latCell<-50.0/180.0*pii) * (latCell>-85.0/180.0*pii) * np.logical_or(lonCell>280.0/360.0*2.0*pii, lonCell<80.0/360.0*2*pii))[0]; size=1.0; fsz=(15,10)  # weddell to Amery 
+#idx = np.nonzero( (latCell<-60.0/180.0*pii) )[0]; size=1; sz=(14,10); #entire SO
+#idx = np.nonzero( (latCell<-50.0/180.0*pii) * (latCell>-85.0/180.0*pii) * np.logical_or(lonCell>280.0/360.0*2.0*pii, lonCell<80.0/360.0*2*pii))[0]; size=1.0; fsz=(15,10)  # weddell to Amery 
 
 idxSill=210384-1 # filchner sill
 
@@ -42,16 +42,16 @@ path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF-
 #path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist/'
 
 diffpath = False
-#diffpath='/global/cscratch1/sd/hoffman2/acme_scratch/edison/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/run'
+diffpath='/global/cscratch1/sd/hoffman2/acme_scratch/edison/archive/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/ocn/hist/'
 
-years = np.arange(60,75,1)
+years = np.arange(50,116,1)
 months = np.arange(1,13,1)
 #months = np.arange(1,2,1)
 nt = len(years)*len(months)
 
 
 fig = plt.figure(1, facecolor='w', figsize=fsz)
-nrow=3
+nrow=2
 ncol=2
 
 diffRange = 0.2
@@ -103,10 +103,10 @@ for yr in years:
 
    f.close()
    
-   f=netCDF4.Dataset('{0}/../../ice/hist/mpascice.hist.am.timeSeriesStatsMonthly.{1:04d}-{2:02d}-01.nc'.format(path, yr, mo), 'r')
-   iv=f.variables['timeMonthly_avg_iceVolumeCell'][0,idx]
-   ia=f.variables['timeMonthly_avg_iceAreaCell'][0,idx]
-   f.close()
+#   f=netCDF4.Dataset('{0}/../../ice/hist/mpascice.hist.am.timeSeriesStatsMonthly.{1:04d}-{2:02d}-01.nc'.format(path, yr, mo), 'r')
+#   iv=f.variables['timeMonthly_avg_iceVolumeCell'][0,idx]
+#   ia=f.variables['timeMonthly_avg_iceAreaCell'][0,idx]
+#   f.close()
 
 
 
@@ -117,53 +117,73 @@ for yr in years:
       Sd100 = f.variables['timeMonthly_avg_activeTracers_salinity'][0,idx,k100]
       Sd200 = f.variables['timeMonthly_avg_activeTracers_salinity'][0,idx,k200]
       Sd300 = f.variables['timeMonthly_avg_activeTracers_salinity'][0,idx,k300]
+      if 'timeMonthly_avg_landIceFreshwaterFlux' in f.variables:
+         iceshelfd=f.variables['timeMonthly_avg_landIceFreshwaterFlux'][0,idx]
+      else:
+      #print ("Couldn't find timeMonthly_avg_landIceFreshwaterFlux")
+         iceshelfd = np.zeros((len(idx),))
       f.close()
 
    ax0 = fig.add_subplot(nrow, ncol, 1)
    if diffpath:
-      sc1 = ax0.scatter(yCell[idx], xCell[idx], s=size, c=(iv-ivd), vmin=-1.0*7, vmax=7, cmap='RdBu')
+      sc1 = ax0.scatter(yCell[idx], xCell[idx], s=size, c=(iceshelf-iceshelfd)/1000.0*3.14e7, vmin=-1.0*1, vmax=1, cmap='RdBu')
    else:
-      sc1 = ax0.scatter(yCell[idx], xCell[idx], s=size, c=(iv), vmin=0, vmax=2, cmap=cmap)
+      sc1 = ax0.scatter(yCell[idx], xCell[idx], s=size, c=(iceshelf), vmin=0, vmax=1, cmap=cmap)
       sc1.cmap.set_under('k')
    i2 = np.nonzero(idx==idxSill)[0][0]
    fig.colorbar(sc1, ax=ax0)
    ax0.plot(yCell[idxSill], xCell[idxSill], 'k.')
    ax0.axis('equal')
-   ax0.set_title("{}:\n year {}, mo {}; SI vol (m)".format(path, yr, mo), fontsize=7)
+#   ax0.set_title("{}:\n year {}, mo {}; ice shelf melt (m/yr)".format(path, yr, mo), fontsize=7)
+   ax0.set_title("year {0:04d}, mo {1:02d}; ice shelf melt (m/yr)".format(yr, mo))
    plt.axis('off')
+
+
+#   ax0 = fig.add_subplot(nrow, ncol, 1)
+#   if diffpath:
+#      sc1 = ax0.scatter(yCell[idx], xCell[idx], s=size, c=(iv-ivd), vmin=-1.0*7, vmax=7, cmap='RdBu')
+#   else:
+#      sc1 = ax0.scatter(yCell[idx], xCell[idx], s=size, c=(iv), vmin=0, vmax=2, cmap=cmap)
+#      sc1.cmap.set_under('k')
+#   i2 = np.nonzero(idx==idxSill)[0][0]
+#   fig.colorbar(sc1, ax=ax0)
+#   ax0.plot(yCell[idxSill], xCell[idxSill], 'k.')
+#   ax0.axis('equal')
+#   ax0.set_title("{}:\n year {}, mo {}; SI vol (m)".format(path, yr, mo), fontsize=7)
+#   plt.axis('off')
+#
+#
+#   ax0 = fig.add_subplot(nrow, ncol, 2)
+#   if diffpath:
+#      sc1 = ax0.scatter(yCell[idx], xCell[idx], s=size, c=(FWF-FWFd), vmin=-1.0*7, vmax=7, cmap='RdBu')
+#   else:
+#      sc1 = ax0.scatter(yCell[idx], xCell[idx], s=size, c=(FWF), vmin=-10, vmax=10, cmap='RdBu')
+#      sc1.cmap.set_under('k')
+#   i2 = np.nonzero(idx==idxSill)[0][0]
+#   fig.colorbar(sc1, ax=ax0)
+#   ax0.plot(yCell[idxSill], xCell[idxSill], 'k.')
+#   ax0.axis('equal')
+#   #ax0.set_title("{}:\n year {}, mo {}; FWF (m/yr)".format(path, yr, mo), fontsize=7)
+#   ax0.set_title("{}:\n year {}, mo {}; FWF (m/yr)".format("", yr, mo), fontsize=7)
+#   plt.axis('off')
+#
+#   ax0 = fig.add_subplot(nrow, ncol, 3)
+#   if diffpath:
+#      sc1 = ax0.scatter(yCell[idx], xCell[idx], s=size, c=(speed-speedd), vmin=-1.0*7, vmax=7, cmap=RdBu_r)
+#   else:
+#      sc1 = ax0.scatter(yCell[idx], xCell[idx], s=size, c=(speed), vmin=0, vmax=0.01, cmap=cmap)
+#      sc1.cmap.set_under('k')
+#   i2 = np.nonzero(idx==idxSill)[0][0]
+#   fig.colorbar(sc1, ax=ax0)
+#   ax0.plot(yCell[idxSill], xCell[idxSill], 'k.')
+#   ax0.axis('equal')
+#   #ax0.set_title("{}:\n year {}, mo {}; sfc spd (m/s)".format(path, yr, mo), fontsize=7)
+#   ax0.set_title("{}:\n year {}, mo {}; sfc spd (m/s)".format("", yr, mo), fontsize=7)
+#   plt.axis('off')
+
 
 
    ax0 = fig.add_subplot(nrow, ncol, 2)
-   if diffpath:
-      sc1 = ax0.scatter(yCell[idx], xCell[idx], s=size, c=(FWF-FWFd), vmin=-1.0*7, vmax=7, cmap='RdBu')
-   else:
-      sc1 = ax0.scatter(yCell[idx], xCell[idx], s=size, c=(FWF), vmin=-10, vmax=10, cmap='RdBu')
-      sc1.cmap.set_under('k')
-   i2 = np.nonzero(idx==idxSill)[0][0]
-   fig.colorbar(sc1, ax=ax0)
-   ax0.plot(yCell[idxSill], xCell[idxSill], 'k.')
-   ax0.axis('equal')
-   #ax0.set_title("{}:\n year {}, mo {}; FWF (m/yr)".format(path, yr, mo), fontsize=7)
-   ax0.set_title("{}:\n year {}, mo {}; FWF (m/yr)".format("", yr, mo), fontsize=7)
-   plt.axis('off')
-
-   ax0 = fig.add_subplot(nrow, ncol, 3)
-   if diffpath:
-      sc1 = ax0.scatter(yCell[idx], xCell[idx], s=size, c=(speed-speedd), vmin=-1.0*7, vmax=7, cmap=RdBu_r)
-   else:
-      sc1 = ax0.scatter(yCell[idx], xCell[idx], s=size, c=(speed), vmin=0, vmax=0.01, cmap=cmap)
-      sc1.cmap.set_under('k')
-   i2 = np.nonzero(idx==idxSill)[0][0]
-   fig.colorbar(sc1, ax=ax0)
-   ax0.plot(yCell[idxSill], xCell[idxSill], 'k.')
-   ax0.axis('equal')
-   #ax0.set_title("{}:\n year {}, mo {}; sfc spd (m/s)".format(path, yr, mo), fontsize=7)
-   ax0.set_title("{}:\n year {}, mo {}; sfc spd (m/s)".format("", yr, mo), fontsize=7)
-   plt.axis('off')
-
-
-
-   ax0 = fig.add_subplot(nrow, ncol, 4)
    if diffpath:
       sc1 = ax0.scatter(yCell[idx], xCell[idx], s=size, c=(SSS-SSSd), vmin=-1.0*diffRange, vmax=diffRange, cmap=cmap)
    else:
@@ -174,26 +194,27 @@ for yr in years:
    ax0.plot(yCell[idxSill], xCell[idxSill], 'k.')
    ax0.axis('equal')
    #ax0.set_title("{}:\n year {}, mo {}; SSS".format(path, yr, mo), fontsize=7)
-   ax0.set_title("{}:\n year {}, mo {}; SSS".format("", yr, mo), fontsize=7)
+   #ax0.set_title("{}:\n year {}, mo {}; SSS".format("", yr, mo), fontsize=7)
+   ax0.set_title("year {0:04d}, mo {1:02d}; SSS".format(yr, mo))
    plt.axis('off')
 
 
 
-   ax50 = fig.add_subplot(nrow, ncol, 5)
-   if diffpath:
-      sc1 = ax50.scatter(yCell[idx], xCell[idx], s=size, c=(S50-Sd50), vmin=-1.0*diffRange, vmax=diffRange, cmap=cmap)
-   else:
-      sc1 = ax50.scatter(yCell[idx], xCell[idx], s=size, c=(S50), vmin=33.0, vmax=34.6, cmap=cmap)
-      sc1.cmap.set_under('k')
-   i2 = np.nonzero(idx==idxSill)[0][0]
-   fig.colorbar(sc1, ax=ax50)
-   ax50.plot(yCell[idxSill], xCell[idxSill], 'k.')
-   ax50.axis('equal')
-   #ax50.set_title("{}:\n year {}, mo {}; Sal. 50m".format(path, yr, mo), fontsize=7)
-   ax50.set_title("{}:\n year {}, mo {}; Sal. 50m".format("", yr, mo), fontsize=7)
-   plt.axis('off')
+#   ax50 = fig.add_subplot(nrow, ncol, 5)
+#   if diffpath:
+#      sc1 = ax50.scatter(yCell[idx], xCell[idx], s=size, c=(S50-Sd50), vmin=-1.0*diffRange, vmax=diffRange, cmap=cmap)
+#   else:
+#      sc1 = ax50.scatter(yCell[idx], xCell[idx], s=size, c=(S50), vmin=33.0, vmax=34.6, cmap=cmap)
+#      sc1.cmap.set_under('k')
+#   i2 = np.nonzero(idx==idxSill)[0][0]
+#   fig.colorbar(sc1, ax=ax50)
+#   ax50.plot(yCell[idxSill], xCell[idxSill], 'k.')
+#   ax50.axis('equal')
+#   #ax50.set_title("{}:\n year {}, mo {}; Sal. 50m".format(path, yr, mo), fontsize=7)
+#   ax50.set_title("{}:\n year {}, mo {}; Sal. 50m".format("", yr, mo), fontsize=7)
+#   plt.axis('off')
 
-   ax100 = fig.add_subplot(nrow, ncol, 6)
+   ax100 = fig.add_subplot(nrow, ncol, 3)
    if diffpath:
       sc1 = ax100.scatter(yCell[idx], xCell[idx], s=size, c=(S100-Sd100), vmin=-1.0*diffRange, vmax=diffRange, cmap=cmap)
    else:
@@ -204,21 +225,22 @@ for yr in years:
    ax100.plot(yCell[idxSill], xCell[idxSill], 'k.')
    ax100.axis('equal')
    #ax100.set_title("{}:\n year {}, mo {}; Sal. 100m".format(path, yr, mo), fontsize=7)
-   ax100.set_title("{}:\n year {}, mo {}; Sal. 100m".format("", yr, mo), fontsize=7)
+   ax100.set_title("year {0:04d}, mo {1:02d}; Sal. level {2} (~100m)".format(yr, mo, k100+1))
    plt.axis('off')
 
-#   ax200 = fig.add_subplot(nrow, ncol, 6)
-#   if diffpath:
-#      sc1 = ax200.scatter(yCell[idx], xCell[idx], s=size, c=(S200-Sd200), vmin=-1.0*diffRange, vmax=diffRange, cmap=cmap)
-#   else:
-#      sc1 = ax200.scatter(yCell[idx], xCell[idx], s=size, c=(S200), vmin=33.5, vmax=34.6, cmap=cmap)
-#      sc1.cmap.set_under('k')
-#   i2 = np.nonzero(idx==idxSill)[0][0]
-#   fig.colorbar(sc1, ax=ax200)
-#   ax200.plot(yCell[idxSill], xCell[idxSill], 'k.')
-#   ax200.axis('equal')
-#   ax200.set_title("{}:\n year {}, mo {}; Sal. 200m".format(path, yr, mo), fontsize=7)
-#   plt.axis('off')
+   ax200 = fig.add_subplot(nrow, ncol, 4)
+   if diffpath:
+      sc1 = ax200.scatter(yCell[idx], xCell[idx], s=size, c=(S200-Sd200), vmin=-1.0*diffRange, vmax=diffRange, cmap=cmap)
+   else:
+      sc1 = ax200.scatter(yCell[idx], xCell[idx], s=size, c=(S200), vmin=33.5, vmax=34.6, cmap=cmap)
+      sc1.cmap.set_under('k')
+   i2 = np.nonzero(idx==idxSill)[0][0]
+   fig.colorbar(sc1, ax=ax200)
+   ax200.plot(yCell[idxSill], xCell[idxSill], 'k.')
+   ax200.axis('equal')
+   #ax200.set_title("{}:\n year {}, mo {}; Sal. 200m".format(path, yr, mo), fontsize=7)
+   ax200.set_title("year {0:04d}, mo {1:02d}; Sal. level {2} (~200m)".format(yr, mo, k200))
+   plt.axis('off')
 
 #   ax300 = fig.add_subplot(nrow, ncol, 4)
 #   if diffpath:
