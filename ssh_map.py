@@ -23,31 +23,28 @@ import weddell_mod as wed
 
 # PARAMETERS
 
-#zi = 0.;
-zi = 400.;
-zeval = np.arange(0,1200,100);
-#var = ['T']
+zi = 0.;
+#zi = 100.;
 var = ['U']
 #var = ['tau']
 #var = ['ssh']
 #var = ['rho']
-run = ['ISMF','ISMF-noEAIS']
-#run = ['ISMF-noEAIS']
-yr = [73]
-pt = 'quiver'
-#pt = 'abs'
-#yr = np.arange(70,90,1)
-#yr = np.arange(70,101,1)
-#mo = np.arange(1,13,1)
-mo = [8]
+#run = ['ISMF','ISMF-noEAIS']
+run = ['ISMF','ISMF-3dGM']
+yr = np.arange(90,101,1)
+mo = np.arange(1,13,1)
+#yr = np.arange(90,91,1)
+#mo = np.arange(1,2,1)
+plottype='quiver'
 #loc = 'fris'
 loc = 'frisEAcoast'
 
 for k in yr:
     for m in mo:
         for j in var:
-            for zi in zeval:
-                wed.plot_surf_var(j,k,m,z=zi,run=run[0],zab=False,runcmp=True,locname=loc,varlim=True,plottype=pt)
-                for i in run:
-                    wed.plot_surf_var(j,k,m,z=zi,run=i,zab=False,runcmp=False,locname=loc,varlim=True,plottype=pt)
+            for i in run:
+                wed.plot_surf_var(j,k,m,z=zi,run=[i],zab=False,plottype=plottype,
+                              locname=loc,varlim=True,overwrite=True)
+            wed.plot_surf_var(j,k,m,z=zi,run=run,zab=False,plottype=plottype,
+                              locname=loc,varlim=True,overwrite=True)
 

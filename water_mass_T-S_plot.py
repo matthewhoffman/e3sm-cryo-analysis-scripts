@@ -64,9 +64,9 @@ for yr in np.arange(95,102,1):
    # get data
    Ts = T[0,idx,:]
    Ss = S[0,idx,:]
-   sc=axTS.scatter(Ss[:], Ts[:], s=1, c=np.tile(z, (len(idx),1)), vmin=-700, vmax=0.0)
+   sc=axTS.scatter(Ss[:], Ts[:], s=1, c=np.tile(z, (len(idx),1)), vmin=-700, vmax=0.0, cmap='twilight')
    
-   axTS.set_ylim([-2.6,2.0])
+   axTS.set_ylim([-2.1,2.0])
    axTS.set_xlim([33.0,34.8])
    plt.colorbar(sc)
    

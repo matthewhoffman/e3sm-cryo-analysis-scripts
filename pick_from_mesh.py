@@ -33,16 +33,16 @@ from extract_depths import zmidfrommesh
 from plot_config import *
 
 def pick_point(option='coord',lat=-76,lon=360-32,run='ISMF',
-               vartype='velocity',transect_name='',scope_name = 'frisEAcoast',
+               vartype='velocity',transect_name='',region = 'frisEAcoast',
                plot_map=False, overwrite=False, savepath=savepath_nersc):
     
     fmesh = netCDF4.Dataset(meshpath[runname.index(run)])
 
     # import variables from file
-    latcell = fmesh.variables['latCell'][:]
-    loncell = fmesh.variables['lonCell'][:]
-    xcell   = fmesh.variables['xCell'][:]
-    ycell   = fmesh.variables['yCell'][:]
+    latCell = fmesh.variables['latCell'][:]
+    lonCell = fmesh.variables['lonCell'][:]
+    xCell   = fmesh.variables['xCell'][:]
+    yCell   = fmesh.variables['yCell'][:]
     if vartype== 'velocity':
         latpt = fmesh.variables['latEdge'][:]
         lonpt = fmesh.variables['lonEdge'][:]
@@ -59,18 +59,44 @@ def pick_point(option='coord',lat=-76,lon=360-32,run='ISMF',
         location_name = (str(int(abs(lat))) + 'S' + 
                          str(int(abs(lon-360))) + 'W')
         
-        candidate_bool = ( (latcell > (lat-dlat)*deg2rad )    & 
-                           (latcell < (lat+dlat)*deg2rad )    &
-                           (loncell > (lon-dlon)*deg2rad )    & 
-                           (loncell < (lon+dlon)*deg2rad )  )
+        candidate_bool = ( (latCell > (lat-dlat)*deg2rad )    & 
+                           (latCell < (lat+dlat)*deg2rad )    &
+                           (lonCell > (lon-dlon)*deg2rad )    & 
+                           (lonCell < (lon+dlon)*deg2rad )  )
         candidate_idx = np.asarray(candidate_bool.nonzero(),dtype=int)[0,:]
         _,_,distance_from_point = geod.inv(
                                   [lon for j in candidate_idx],
                                   [lat for j in candidate_idx],
-                                  loncell[candidate_idx]/deg2rad,
-                                  latcell[candidate_idx]/deg2rad)
+                                  lonCell[candidate_idx]/deg2rad,
+                                  latCell[candidate_idx]/deg2rad)
         cellidx = int(candidate_idx[np.argmin(distance_from_point)])
-    return cellidx
+
+    if plot_map:
+        fig = plt.figure()
+        idx = pick_from_region(region=region,run=run)
+        zmax     = np.multiply(-1,fmesh.variables['bottomDepth'][idx])
+        zice     = fmesh.variables['landIceDraft'][0,idx]
+        
+        cntr1 = plt.tricontourf(yCell[idx].flatten(), xCell[idx].flatten(),
+                                zmax.flatten(), 20, cmap="viridis")
+        #plt.plot(yCell[idx],     xCell[idx], 'o', color = 'white',
+        #         markersize = 4, fillstyle = 'none')#, alpha = 0.5)
+        plt.plot(yCell[cellidx], xCell[cellidx], 'o', color = 'red',
+                 markersize = 4)
+        #cntr = plt.tricontour(yCell[idx].flatten(), xCell[idx].flatten(),
+        #                       zice.flatten(), [-10], colors = 'k')
+        #if varlim:
+        #    plt.clim([varmin[vartitle.index('z')], varmax[vartitle.index('z')]])
+        plt.axis('equal')
+        cbar = plt.colorbar(cntr1)
+        cbar.set_label('Depth (m)')
+        plot_filename = 'bathy_' + location_name
+        print(plot_filename)
+        plt.savefig(savepath + plot_filename + '.png',dpi=set_dpi)
+        plt.close()
+
+    return cellidx,location_name
+
 # PICK_TRANSECT
 # option choose transect by 'coord' or 'contour'
 #        if 'contour' need to provide latitude limits throgh latS and lonW
@@ -315,13 +341,7 @@ def pick_transect(option='coord',lat=[-76,-76],lon=[360-32,360-32],run='ISMF',
         #xcell = fmesh.variables['xCell'][:]
         #ycell = fmesh.variables['yCell'][:]
         #latcell = fmesh.variables['latCell'][:]
-        logical_N = ( (latcell < deg2rad*lat_N)                 & 
-                      (xcell > loc_xmin[loc.index(scope_name)]) & 
-                      (xcell < loc_xmax[loc.index(scope_name)]) & 
-                      (ycell > loc_ymin[loc.index(scope_name)]) & 
-                      (ycell < loc_ymax[loc.index(scope_name)]) )
-        
-        idx_scope = np.where(logical_N)[0]
+        idx_scope = pick_from_region(region=scope_name, run=run, plot_map=False)
         zmax_scope = np.multiply(-1.,fmesh.variables['bottomDepth'][idx_scope])
         icemask_scope  = fmesh.variables['landIceMask'][0,idx_scope]
         #zice_scope     = fmesh.variables['landIceDraft'][idx_scope]
@@ -383,3 +403,28 @@ def pick_transect(option='coord',lat=[-76,-76],lon=[360-32,360-32],run='ISMF',
     
     return cellidx, edgeidx, dist, angle
 
+def pick_from_region(region='frisEAcoast',run = 'ISMF',
+               plot_map=False, overwrite=False, savepath=savepath_nersc):
+    
+    fmesh = netCDF4.Dataset(meshpath[runname.index(run)])
+
+    # import variables from file
+    print(region_zbounds[region_name.index(region),1]) 
+    latCell = fmesh.variables['latCell'][:]
+    lonCell = fmesh.variables['lonCell'][:]
+    xCell   = fmesh.variables['xCell'][:]
+    yCell   = fmesh.variables['yCell'][:]
+    zmax    = np.multiply(-1,fmesh.variables['bottomDepth'][:])
+    idx_bool = ((xCell   < region_xybounds   [region_name.index(region),0,1]) & 
+                (xCell   > region_xybounds   [region_name.index(region),0,0]) & 
+                (yCell   < region_xybounds   [region_name.index(region),1,1]) & 
+                (yCell   > region_xybounds   [region_name.index(region),1,0]) & 
+                (latCell < region_coordbounds[region_name.index(region),1,1]*deg2rad) & 
+                (latCell > region_coordbounds[region_name.index(region),1,0]*deg2rad) & 
+                (lonCell < region_coordbounds[region_name.index(region),0,1]*deg2rad) & 
+                (lonCell > region_coordbounds[region_name.index(region),0,0]*deg2rad) &
+                (zmax    < region_zbounds    [region_name.index(region),1]) & 
+                (zmax    > region_zbounds    [region_name.index(region),0]) 
+               )
+    cellidx = np.asarray(idx_bool.nonzero(),dtype=int)[0,:]
+    return cellidx

@@ -8,12 +8,14 @@ Created on Tue May  7 13:56:52 2019
 
 from math import pi,sqrt,nan,atan,cos,floor,ceil
 import matplotlib as pltlib
+import numpy as np
 
 pltlib.rc_file('rcparams.txt', use_default_template=True)
 
+printformat = 'png'
+
 m3ps_to_Sv = 1e-6 # m^3/sec flux to Sverdrups
 bad_data = -1e33
-#bad_data2 = 0.
 deg2rad  = pi/180.
 lat_N = -50 # northern limit of domain
     
@@ -22,34 +24,58 @@ cells_trough_shelf_lat = [165785,166563,130260,191987,85569] # index is value - 
 #cells_trough_shelf_lat = [224105,165785,166563,130260,191987] # index is value - 1, located just under ice
 cells_trough_shelf2_lat = [152383,144943,67352] # index is value - 1, located just under ice
 
-# location M31W from Ryan et al. 2017 JGR Oceans
-latS = 76 + 2.75/60
-lonW = 30 + 59.65/60
-
 latmin = -80
 latmax = -80
 lonmin = 360-48
 lonmax = 360
 
-loc = ['frisEAcoast','fris','wedwang','trough_shelf','trough_ice','76S31W','75S31W']
-loctitle = ['' for i in loc]
-loctitle[loc.index('trough_shelf')] = 'trough, shelf break'
-loctitle[loc.index('trough_ice')] = 'trough, under ice shelf front'
-loctitle[loc.index('76S31W')] = 'M31W'
-loctitle[loc.index('75S31W')] = 'S4E'
+region_name = ['frisEAcoast','fris','gyre_interior','trough_shelf','trough_ice','M31W',
+               'S4E','wedwang','wed_pyc_Ryan'] # formerly loc
+# M31W and S4E from Ryan et al. 2017 JGR Oceans
+region_title = ['' for i in region_name] # loc_name
+#TODO fix allocation
+region_coordbounds = np.zeros((len(region_name),2,2)) 
+region_xybounds    = np.zeros((len(region_name),2,2)) 
+region_zbounds     = np.zeros((len(region_name),2)) 
+for i in region_name:
+    region_zbounds[region_name.index(i)] = [-9999.,20.]
 
-loc_xmin = [0e6,0.2e6,360-55,360-35,360-46]
-loc_xmax = [2e6,1.5e6,360-45,360-30,360-35]
-loc_ymin = [-2e6,-1.5e6,-74,-74.75,-78.1]
-loc_ymax = [0,-0.4e6,-65,-74.75,-78.1]
-loc_ptsize = [40,80]
+region_title[region_name.index('gyre_interior')] = 'off-shelf'
+region_title[region_name.index('trough_shelf')] = 'trough, shelf break'
+region_title[region_name.index('trough_shelf')] = 'trough, shelf break'
+region_title[region_name.index('trough_ice')] = 'trough, under ice shelf front'
+region_title[region_name.index('M31W')] = 'M31W'
+region_title[region_name.index('S4E')] = 'S4E'
+
+region_coordbounds[region_name.index('M31W')] = ([360-30.994,360-30.994],
+                                                 [-76.046,-76.046])
+region_coordbounds[region_name.index('S4E')] = ([360-30.58,360-30.58],
+                                               [-74.62,-74.62])
+region_xybounds   [region_name.index('frisEAcoast')]  = [0e6,2e6],[-2e6,0] 
+region_coordbounds[region_name.index('frisEAcoast')]  = [300,360],[-180,-60]
+region_xybounds   [region_name.index('fris')]         = [0.2e6,1.5e6],[-1.5e6,-0.4e6] 
+region_coordbounds[region_name.index('fris')]         = [-1,361],[-181,181]
+region_xybounds   [region_name.index('wedwang')]      = [-6.5e6,6.5e6],[-6.5e6,6.5e6] 
+region_coordbounds[region_name.index('wedwang')]      = [305,315],[-74,-65] 
+region_xybounds   [region_name.index('wed_pyc_Ryan')] = [-6.5e6,6.5e6],[-6.5e6,6.5e6] 
+region_coordbounds[region_name.index('wed_pyc_Ryan')] = [330,360],[-75,-69] 
+region_xybounds   [region_name.index('trough_shelf')] = [-6.5e6,6.5e6],[-6.5e6,6.5e6] 
+region_coordbounds[region_name.index('trough_shelf')] = [325,330],[-74.75,-74.75]
+region_xybounds   [region_name.index('trough_ice')]   = [-6.5e6,6.5e6],[-6.5e6,6.5e6] 
+region_coordbounds[region_name.index('trough_ice')]   = [314,325],[-78.1,-78.1]
+region_xybounds   [region_name.index('gyre_interior')]= region_xybounds[region_name.index('wed_pyc_Ryan')]
+region_coordbounds[region_name.index('gyre_interior')]= region_coordbounds[region_name.index('wed_pyc_Ryan')]
+region_zbounds    [region_name.index('gyre_interior')]= [-4500,-2500]
+
+loc_ptsize = [40 for i in region_name]
 
 legloc = 'upper left'
 bboxanchor = (0.0,-0.25)
 
+#Ryan et al. 2017
 season = ['summer','fall','winter','spring'] 
 summer_color = '#DAF5D0'#(11,0,15,4)
-fall_color = '#F2D0DC'#(0,14,9,5)
+fall_color   = '#F2D0DC'#(0,14,9,5)
 winter_color = '#FFFFEB'#(0,0,8,0) 
 spring_color = '#D1D5EB'#(11,9,0,8) 
 season_color = [summer_color,fall_color,winter_color,spring_color]
@@ -70,17 +96,22 @@ run_color = ['cornflowerblue',
              'k',
              'darkorange']
 savepath_nersc = '/global/homes/c/cbegeman/weddell_output/'
-runpath = ['/global/cfs/cdirs/m3412/simulations/20190225.GMPAS-DIB-IAF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist',
-#/global/cfs/cdirs/m3412/simulations/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist',
+runpath = [
+#          '/global/cfs/cdirs/m3412/simulations/20190225.GMPAS-DIB-IAF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist',
+           '/global/cfs/cdirs/m3412/simulations/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist',
 #           '/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist',
-           '/global/cscratch1/sd/hoffman2/acme_scratch/edison/archive/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/ocn/hist',
+           
+#            '/global/cfs/cdirs/m3412/simulations/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/archive/ocn/hist',
+             '/global/cfs/cdirs/m3412/simulations/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/ocn/hist/',
+           #'/global/cscratch1/sd/hoffman2/acme_scratch/edison/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/run',
+#           '/global/cscratch1/sd/hoffman2/acme_scratch/edison/archive/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/ocn/hist',
+
            '/global/cscratch1/sd/sprice/acme_scratch/cori-knl/20190819.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl.testNewGM/archive/ocn/hist']
-           #'/global/cscratch1/sd/hoffman2/acme_scratch/edison/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/run']
 meshpath = ['/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
             '/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
             '/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc']
 
-vartitle = ['z','T','S','rho','u','v','U','taux','tauy','tau',
+vartitle = ['z','z_pyc','T','S','rho','u','v','U','taux','tauy','tau',
             'ssh','ssh_cmp','curl','zice','u_barotropic','u_baroclinic']
 varlabel = [str() for i in vartitle]
 varlabel[0:7] = ['Depth (m)','T (degC)','S (PSU)','Pot. Density (kg/m3)',
@@ -92,6 +123,7 @@ varlabel[vartitle.index('rho')] = 'Pot density'
 varlabel[vartitle.index('tau')] = 'Surface stress'
 varlabel[vartitle.index('ssh')] = 'Sea Surface Height (m)'
 varlabel[vartitle.index('curl')] = 'curl'
+varlabel[vartitle.index('z_pyc')] = 'Pycnocline depth (m)'
 varlabel[vartitle.index('u_barotropic')] = 'u barotropic (m/s)'
 varlabel[vartitle.index('u_baroclinic')] = 'u baroclinic (m/s)'
 #varlabel[vartitle.index('u_barotropic')] = 'Velocity, barotropic (m/s)'
@@ -99,7 +131,8 @@ varlabel[vartitle.index('u_baroclinic')] = 'u baroclinic (m/s)'
 surfvar = ['taux','tauy','tau','ssh']
 
 # TODO fix assignment
-varname  = ['depth','timeMonthly_avg_activeTracers_temperature',
+varname  = ['depth','',
+            'timeMonthly_avg_activeTracers_temperature',
             'timeMonthly_avg_activeTracers_salinity',
             'timeMonthly_avg_potentialDensity',
             'timeMonthly_avg_velocityZonal',
@@ -159,6 +192,7 @@ dvar[vartitle.index('v')] = .001
 # colormap corresponding to var
 varcmap = ['cmo.speed' for i in vartitle]
 varcmap[vartitle.index('z')] = 'cmo.deep'
+varcmap[vartitle.index('z_pyc')] = 'cmo.deep'
 varcmap[vartitle.index('zice')] = 'cmo.deep'
 varcmap[vartitle.index('T')] = 'cmo.thermal'
 varcmap[vartitle.index('S')] = 'cmo.haline'
@@ -178,5 +212,23 @@ fs=16
 # linewidth
 lw1 = 1
 
-TSpolygon_Hattermann2018 = [[34.45,0.5],[34.5,0],[34.6,-1],[34.55,-1.5]]
+TSpolygon_Hattermann2018 = [[34.45,-0.5],[34.5,0],[34.6,-1],[34.55,-1.5]]
+#TSpolygon_Hattermann2018_edit = [[34.20,-0.75],[34.25,0.25],[34.35,-0.75],[34.30,-1.75]]
+TSpolygon_Hattermann2018_edit = [[34.10,0.25],[34.15,1.25],[34.35,-0.75],[34.30,-1.75]]
 TSpolygon_ISMF = [[34.45,0.5],[34.5,0],[34.5,-1],[34.0,-1.5]]
+
+#TODO
+TSpolygon_CDW  = [[34.0, 0.0], [40.0, 0.0], [40.0, 5.0], [34.0, 5.0]] 
+TSpolygon_mCDW = [[34.0, -1.5], [40.0, -1.5], [40.0, 0.0], [34.0, 0.0]] 
+
+m_Tfreezing = -0.0575
+b_Tfreezing = 0.0901
+# Tfpreezing = m_Tfreezing * S + b_Tfreezing
+TSpolygon_AASW = [[20.0, 5.0], [20.0, m_Tfreezing * 20.0 + b_Tfreezing],
+                  [34.0, m_Tfreezing * 34.0 + b_Tfreezing], [34.0, 5.0]]
+TSpolygon_LSSW = [[34.0, -1.5], [34.0, m_Tfreezing * 34.0 + b_Tfreezing],
+                  [34.5, m_Tfreezing * 34.5 + b_Tfreezing], [34.5, -1.5]]
+TSpolygon_HSSW = [[34.5, -1.5], [34.5, m_Tfreezing * 34.5 + b_Tfreezing],
+                  [40.0, m_Tfreezing * 40.0 + b_Tfreezing], [40.0, -1.5]]
+TSpolygon_ISW  = [[30.0, -3.0], [30.0, m_Tfreezing * 30.0 + b_Tfreezing],
+                  [40.0, m_Tfreezing * 40.0 + b_Tfreezing], [40.0, -3.0]]
