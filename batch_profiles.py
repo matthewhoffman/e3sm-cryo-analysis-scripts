@@ -19,17 +19,13 @@ from math import pi
 import weddell_mod as wed
 
 run_incr = ['ISMF','ISMF-noEAIS']
-latS = 76 + 2.75/60
-lonW = 30 + 59.65/60
-#latS = [74,75]
-#lonW = [30,30]
-startyr = 70
-#endyr = 101
-endyr = 71
+lat = -70
+lon = 360-20
+year_range = [70,70]
+varlist = ['T','S','rho']
 
-for yr in np.arange(startyr,endyr+1,1):
-    wed.profile(['T','S','rho'],'ISMF',yr,yr,latS,lonW,runcmp=True,runcmpname='ISMF-3dGM')
-    wed.profile(['u','v'],'ISMF',yr,yr,latS,lonW,runcmp=True,runcmpname='ISMF-3dGM')
+wed.profile(run_incr,varlist,year_range,lat,lon)
+#    wed.profile(['u','v'],'ISMF',yr,yr,latS,lonW,runcmp=True,runcmpname='ISMF-3dGM')
 #    for i,l in enumerate(latS):
 #        wed.profile(['T','S','rho'],'ISMF',yr,yr,latS[i],lonW[i],runcmp=True)
 #        wed.profile(['u','v'],'ISMF',yr,yr,latS[i],lonW[i],runcmp=True)

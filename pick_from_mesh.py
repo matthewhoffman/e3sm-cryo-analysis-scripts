@@ -32,12 +32,17 @@ import pandas
 from extract_depths import zmidfrommesh
 from plot_config import *
 
-def pick_point(option='coord',lat=-76,lon=360-32,run='ISMF',
-               vartype='velocity',transect_name='',region = 'frisEAcoast',
+def pick_point(lat=-9999,lon=-9999,
+               run='ISMF',placename = '',
+               vartype='velocity',transect_name='',plot_region = 'frisEAcoast',
                plot_map=False, overwrite=False, savepath=savepath_nersc):
     
     fmesh = netCDF4.Dataset(meshpath[runname.index(run)])
-
+    
+    if lat == -9999:
+        lat = region_coordbounds[region_name.index(placename)][1,1]
+        lon = region_coordbounds[region_name.index(placename)][0,0]
+    
     # import variables from file
     latCell = fmesh.variables['latCell'][:]
     lonCell = fmesh.variables['lonCell'][:]
@@ -51,29 +56,31 @@ def pick_point(option='coord',lat=-76,lon=360-32,run='ISMF',
         ypt   = fmesh.variables['yEdge'][:]
    
     # the outcome of all these options is a list of x,y points with varying spacing and number 
-    if option == 'coord':
-        geod = pyproj.Geod(ellps='WGS84')
-        dlat = 0.3 # at 30km resolution, distance between cells in deg
-        dlon = 0.98
-        
+    geod = pyproj.Geod(ellps='WGS84')
+    dlat = 0.3 # at 30km resolution, distance between cells in deg
+    dlon = 0.98
+    
+    if placename == '':
         location_name = (str(int(abs(lat))) + 'S' + 
-                         str(int(abs(lon-360))) + 'W')
-        
-        candidate_bool = ( (latCell > (lat-dlat)*deg2rad )    & 
-                           (latCell < (lat+dlat)*deg2rad )    &
-                           (lonCell > (lon-dlon)*deg2rad )    & 
-                           (lonCell < (lon+dlon)*deg2rad )  )
-        candidate_idx = np.asarray(candidate_bool.nonzero(),dtype=int)[0,:]
-        _,_,distance_from_point = geod.inv(
-                                  [lon for j in candidate_idx],
-                                  [lat for j in candidate_idx],
-                                  lonCell[candidate_idx]/deg2rad,
-                                  latCell[candidate_idx]/deg2rad)
-        cellidx = int(candidate_idx[np.argmin(distance_from_point)])
+                     str(int(abs(lon-360))) + 'W')
+    else:
+        location_name = placename
+ 
+    candidate_bool = ( (latCell > (lat-dlat)*deg2rad )    & 
+                       (latCell < (lat+dlat)*deg2rad )    &
+                       (lonCell > (lon-dlon)*deg2rad )    & 
+                       (lonCell < (lon+dlon)*deg2rad )  )
+    candidate_idx = np.asarray(candidate_bool.nonzero(),dtype=int)[0,:]
+    _,_,distance_from_point = geod.inv(
+                              [lon for j in candidate_idx],
+                              [lat for j in candidate_idx],
+                              lonCell[candidate_idx]/deg2rad,
+                              latCell[candidate_idx]/deg2rad)
+    cellidx = int(candidate_idx[np.argmin(distance_from_point)])
 
     if plot_map:
         fig = plt.figure()
-        idx = pick_from_region(region=region,run=run)
+        idx = pick_from_region(region=plot_region,run=run)
         zmax     = np.multiply(-1,fmesh.variables['bottomDepth'][idx])
         zice     = fmesh.variables['landIceDraft'][0,idx]
         
@@ -121,6 +128,7 @@ def pick_transect(option='coord',lat=[-76,-76],lon=[360-32,360-32],run='ISMF',
     loncell = fmesh.variables['lonCell'][:]
     xcell   = fmesh.variables['xCell'][:]
     ycell   = fmesh.variables['yCell'][:]
+    zbottom = np.multiply(-1,fmesh.variables['bottomDepth'][:])
     #if vartype == 'scalar':
         #latpt = fmesh.variables['latCell'][:]
         #lonpt = fmesh.variables['lonCell'][:]
@@ -137,14 +145,21 @@ def pick_transect(option='coord',lat=[-76,-76],lon=[360-32,360-32],run='ISMF',
         dlat = 0.3 # at 30km resolution, distance between cells in deg
         dlon = 0.98
         
-        if transect_name == 'ryan_2017_trough':
-            lat = [latmin,latmax]
-            lon = [lonmin,lonmax]
+        if transect_name != '':
+            #TODO edit using region_name,region_xybounds, region_coordbounds
+            lat = [region_coordbounds[region_name.index(transect_name),1,0],
+                   region_coordbounds[region_name.index(transect_name),1,1]]
+            lon = [region_coordbounds[region_name.index(transect_name),0,0],
+                   region_coordbounds[region_name.index(transect_name),0,1]]
+            zmax = region_zbounds[region_name.index(transect_name),1]
+            zmin = region_zbounds[region_name.index(transect_name),0]
         else:
             transect_name = (str(int(abs(lat[0]))) + 'S' + 
                              str(int(abs(lon[0]-360))) + 'W-' + 
                              str(int(abs(lat[1]))) + 'S' + 
                              str(int(abs(lon[1]-360))) + 'W' )
+            zmax = 0.
+            zmin = -9999.
         
         p1,p2 = (lon[0],lat[0]), (lon[1],lat[1])
         frac_along_route = 0.05
@@ -159,7 +174,8 @@ def pick_transect(option='coord',lat=[-76,-76],lon=[360-32,360-32],run='ISMF',
             logical_trans = ( (latcell > (lat_interp[i]-dlat)*deg2rad )    & 
                               (latcell < (lat_interp[i]+dlat)*deg2rad )    &
                               (loncell > (lon_interp[i]-dlon)*deg2rad) & 
-                              (loncell < (lon_interp[i]+dlon)*deg2rad)  )
+                              (loncell < (lon_interp[i]+dlon)*deg2rad) 
+                              ) 
             candidate_idx = np.asarray(logical_trans.nonzero(),dtype=int)[0,:]
             distance_from_point = np.zeros((np.shape(candidate_idx)))
             _,_,distance_from_point = geod.inv(
@@ -170,18 +186,13 @@ def pick_transect(option='coord',lat=[-76,-76],lon=[360-32,360-32],run='ISMF',
             transect_idx[i] = int(candidate_idx[np.argmin(distance_from_point)])
         _,temp_idx = np.unique(transect_idx,return_index=True)
         cellidx = transect_idx[np.sort(temp_idx)]
+        zbool = (zbottom[cellidx] < zmax) & (zbottom[cellidx] > zmin) 
+        cellidx = cellidx[zbool]
         edgeidx = []
         dist = np.sqrt( np.square(fmesh.variables['yCell'][cellidx] - 
                                   fmesh.variables['yCell'][cellidx[0]]) + 
                         np.square(fmesh.variables['xCell'][cellidx] - 
                                   fmesh.variables['xCell'][cellidx[0]]) )
-        x0 = xcell[cellidx[0]]
-        y0 = ycell[cellidx[0]]
-        x1 = xcell[cellidx[-1]]
-        y1 = ycell[cellidx[-1]]
-        m = (y1 - y0)/(x1 - x0)
-        b = (x1*y0 - x0*y1)/(x1 - x0)
-        angle = atan(1/m)
         #elif select_cell == 'connecting':
         #    # NOT FUNCTIONAL
         
@@ -205,43 +216,85 @@ def pick_transect(option='coord',lat=[-76,-76],lon=[360-32,360-32],run='ISMF',
         #uCell = f.variables['timeMonthly_avg_velocityZonal'][0,idx,:]
         #vCell = f.variables['timeMonthly_avg_velocityMeridional'][0,idx,:]
 
-        x_transect = fmesh.variables['xCell'][cellidx]
-        y_transect = fmesh.variables['yCell'][cellidx]
-        edgesOnCell = np.subtract(fmesh.variables['edgesOnCell'][cellidx,:],1)
-        verticesOnCell = np.subtract(fmesh.variables['verticesOnCell'][cellidx,:],1)
-        verticesOnEdge = np.zeros((len(cellidx),7,2))
-        for i in range(len(cellidx)):
-            for j in range(7):
-                verticesOnEdge[i,j,:] = (
-                  fmesh.variables['verticesOnEdge'][edgesOnCell[i,j],:])
-        
-        x0 = xcell[cellidx[0]]
-        y0 = ycell[cellidx[0]]
-        x1 = xcell[cellidx[-1]]
-        y1 = ycell[cellidx[-1]]
-        m = (y1 - y0)/(x1 - x0)
-        b = (x1*y0 - x0*y1)/(x1 - x0)
-        angle = atan(1/m) #fmesh.variables['angleEdge'][edgesOnCell[i,j]])
-        
+    x_transect = fmesh.variables['xCell'][cellidx]
+    y_transect = fmesh.variables['yCell'][cellidx]
+    edgesOnCell = np.subtract(fmesh.variables['edgesOnCell'][cellidx,:],1)
+    verticesOnCell = np.subtract(fmesh.variables['verticesOnCell'][cellidx,:],1)
+    verticesOnEdge = np.zeros((len(cellidx),7,2))
+    for i in range(len(cellidx)):
+        for j in range(7):
+            verticesOnEdge[i,j,:] = (
+              fmesh.variables['verticesOnEdge'][edgesOnCell[i,j],:])
+    
+    # Select edges based on their orientation with respect to the transect line
+    edgeidx = [] 
+    x0 = xcell[cellidx[0]]
+    y0 = ycell[cellidx[0]]
+    x1 = xcell[cellidx[-1]]
+    y1 = ycell[cellidx[-1]]
+    m = (y1 - y0)/(x1 - x0)
+    b = (x1*y0 - x0*y1)/(x1 - x0)
+    angle = atan(1/m)
+    if vartype == 'velocity':
+        #transect_angle = angle/deg2rad 
+        #if transect_angle>=180:
+        #   transect_angle += -360
+        #elif transect_angle<-180:
+        #   transect_angle += 360
+        #if transect_angle < 0:
+        #   transect_angle += 180
+        #print('transect_angle = ',transect_angle)
+        #print('x0,y0 = ',x0,y0)
+        #print('x1,y1 = ',x1,y1)
         idx = [] 
-        edgeidx = [] 
-        dx = 5e3 
+        dxy = 1e3
+        #dxy = 5e3
         for i,celli in enumerate(cellidx):
             for j,edge in enumerate(edgesOnCell[i,:]):
+                angleEdge = fmesh.variables['angleEdge'][edge]#edgesOnCell[i,j]]
                 ye = fmesh.variables['yEdge'][edge]
                 xe = fmesh.variables['xEdge'][edge]
-                ym = m*xe + b
-                xm = (ye - b)/m
-                #if ye > ym:
-                if ( (xe < xm - dx) and (ye > y0) and (ye < y1) ):
+                if abs(x0-x1) > (y0-y1):#only restrictions on y
+                    ym = m*xe + b
+                    xlim = xe#xcell[celli]
+                    ylim = ym - dxy
+                    #print('xe,ym = ',xe,ym)
+                else:#only restrictions on x
+                    xm = (ye - b)/m
+                    xlim = xm - dxy
+                    ylim = ye#ycell[celli]
+                    #print('xm,ye = ',xm,ye)
+                #if i == 1:
+                #    print('xcell,ycell = ',xcell[celli],ycell[celli])
+                #    print('xe,ye = ',xe,ye)
+                #    print('xlim,ylim = ',xlim,ylim)
+                if ( (xe <= xlim) and (ye <= ylim) 
+                     #and abs(xe-xcell[celli])>1e3 and abs(ye-ycell[celli])>1e3
+                   ):
                     #edge not in edgesOnCell[i+1,:]) ):
                     edgeidx.append(edgesOnCell[i,j])
                     idx.append(celli)
+                    #edge_angle = angleEdge/deg2rad
+                    #if edge_angle>=180:
+                    #   edge_angle += -360
+                    #elif edge_angle<-180:
+                    #   edge_angle += 360
+                    #if edge_angle < 0:
+                    #   edge_angle += 180
+                    #dangle = edge_angle-transect_angle
+                    #print('edge_angle = ',edge_angle)
+                    #print('dangle = ',dangle)
         cellidx = idx
+    if vartype == 'velocity':
         dist = np.sqrt( np.square(fmesh.variables['yEdge'][edgeidx] - 
                                   fmesh.variables['yEdge'][edgeidx[0]]) + 
                         np.square(fmesh.variables['xEdge'][edgeidx] - 
                                   fmesh.variables['xEdge'][edgeidx[0]]) )
+    else:
+        dist = np.sqrt( np.square(fmesh.variables['yCell'][cellidx] - 
+                                  fmesh.variables['yCell'][cellidx[0]]) + 
+                        np.square(fmesh.variables['xCell'][cellidx] - 
+                                  fmesh.variables['xCell'][cellidx[0]]) )
         
         # TODO replace above method with that below
         # include all edges whose vertices have y-coordinates above or on a line 
@@ -351,7 +404,7 @@ def pick_transect(option='coord',lat=[-76,-76],lon=[360-32,360-32],run='ISMF',
         fig = plt.figure()
         ax = fig.add_subplot(111)
         cntr1 = plt.scatter(ycell_scope,xcell_scope,
-                            s=loc_ptsize[loc.index(scope_name)], c=zmax_scope)
+                            s=loc_ptsize[region_name.index(scope_name)], c=zmax_scope)
         #cntr1 = plt.tricontourf(ycell[idx_scope],xcell[idx_scope],zmax, 20, cmap="viridis")
         #plt.plot(ycell[idx_scope],xcell[idx_scope], 'o', color = 'white', 
         #         markersize = ms, fillstyle = 'none', alpha = 0.5)
@@ -392,8 +445,10 @@ def pick_transect(option='coord',lat=[-76,-76],lon=[360-32,360-32],run='ISMF',
         #ax.set_xlabel('y (m)')
         #ax.set_ylabel('x (m)')
         plt.axis('equal')
-        plt.xlim([loc_ymin[loc.index(scope_name)],loc_ymax[loc.index(scope_name)]])
-        plt.ylim([loc_xmin[loc.index(scope_name)],loc_xmax[loc.index(scope_name)]])
+        plt.ylim([region_xybounds[region_name.index(scope_name)][0,0],
+                  region_xybounds[region_name.index(scope_name)][0,1]])
+        plt.xlim([region_xybounds[region_name.index(scope_name)][1,0],
+                  region_xybounds[region_name.index(scope_name)][1,1]])
         cbar = plt.colorbar(cntr1)
         #cbar = plt.colorbar(sc)
         cbar.set_label(r'Depth (m)')    

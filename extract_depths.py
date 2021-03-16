@@ -33,21 +33,11 @@ def zmidfrommesh(fmesh,zidx=[-1],cellidx=[],vartype='scalar'):
         zmax1 = fmesh.variables['bottomDepth'][cell1]
         zmax2   = fmesh.variables['bottomDepth'][cell2]
         zmax = (zmax1 + zmax2)/2
-        #nz1 = fmesh.variables['maxLevelCell'][cell1]
-        #nz2 = fmesh.variables['maxLevelCell'][cell2]
-        #nz= nz1
-        #for i in range(len(cell1)):
-        #    nz[i] = np.min([nz1[i],nz2[i]])
 
     cells,zlevels = zh.shape
-    # calculate z from depths
-    #if zidx[0]<0:
-    #    zidx = np.ones((cells,),dtype=bool)
-    #zloc = zmax[zidx]
     zbottom  = np.zeros(zh.shape)
     for i in range(len(cellidx)):
         zbottom[i,-1] = np.multiply(-1,zmax[i])
-        #print(zh[i,:])
         for j in range(zlevels-2,-1,-1):
             zbottom[i,j] = zbottom[i,j+1] + zh[i,j+1]
     zmid = zbottom + np.multiply(0.5,zh)

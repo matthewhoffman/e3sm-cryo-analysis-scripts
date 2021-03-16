@@ -14,24 +14,57 @@ from matplotlib import cm
 from math import pi
 import weddell_mod as wed
 
-run_incr = ['ISMF']#,'ISMF-noEAIS']#,'ISMF-3dGM']
+run_incr = ['ISMF','ISMF-noEAIS']#,'ISMF-3dGM']
+#placename = 'gyre_interior'
+placename = 'wed_pyc_Ryan_shallow'
+#placename = 'wed_pyc_Ryan_shelf'
 #var_incr = ['taux','tauy']
 #var_incr = ['T','S','rho','u','v']
 #var_incr = ['T','S']
 #var_incr = ['unormal']
-var_incr = ['rho']
+var_incr = ['rho','rho']
+rholim = [1027.2,1027.9]
+lat = -70
+lon = 340
+filename = 'ISMF_ISMF-noEAIS_rho_wed_pyc_Ryan_shallow_abovepyc_t070-101'
+year_range = [70,101]
+#year_range = [90,91]
 
-#year_range = [70,101]
-year_range = [90,91]
-
-#print(len(var_incr))
-#for i in run_incr:
+#wed.tseries1(run_incr,['mean'],year_range=year_range,
+#             placename = 'wed_pyc_Ryan', 
+#             apply_filter = True, cutoff = 1/4,
+#             print_to_file=True,create_figure=True,
+#             input_filename = 'ISMF_zpyc_wed_pyc_Ryan_70-101_zlim-4500--3500')
+#wed.tseries1(run_incr,['mean'],year_range=year_range,
+#             placename = 'wed_pyc_Ryan', 
+#             apply_filter = True, cutoff = 1/4,
+#             print_to_file=True,create_figure=True,
+#             input_filename = 'ISMF_zpyc_wed_pyc_Ryan_70-101_zlim-2000--500')
+#wed.tseries1(run_incr,var_incr,year_range=year_range,
+#             placename = 'gyre_interior',
+#             print_to_file=True,create_figure=True,
+#             apply_filter = True, cutoff = 1/4,
+#             ztop_pyc = [True], zbottom_pyc = [False],
+#             year_overlay=False,overwrite=True)
+#wed.tseries1(run_incr,var_incr,year_range=year_range,
+#             placename = placename,
+#             print_to_file=True,create_figure=True,
+#             varlim = rholim,
+#             #apply_filter = True, cutoff = 1/4,
+#             ztop_pyc = [False], zbottom_pyc = [True],
+#             year_overlay=False,overwrite=True)
 wed.tseries1(run_incr,var_incr,year_range=year_range,
-             #option = 'coord',placename = 'S4E',#'M31W',
-             placename = 'gyre_interior',
+             placename = placename,
              print_to_file=True,create_figure=True,
-             ztop_pyc = [True], zbottom_pyc = [False],
-             year_overlay=False)
+             varlim = rholim,
+             input_filename = filename,
+             #apply_filter = True, cutoff = 1/4,
+             ztop_pyc = [True,False], zbottom_pyc = [False,True],
+             year_overlay=False,overwrite=True)
+             #zeval = [-100,-400],
+             #zrange = [-100,-500],
+             #lat=lat, lon=lon,
+             #option = 'coord',placename = 'S4E',#'M31W',
 #             zrange=[0,20],zab=True,
 #        wed.tseries1(i,var_incr,latS,lonW,j,j,z=zeval,zab=True,runcmp=False,velocity_vector=True)
 #        wed.tseries1(i,var_incr,latS,lonW,j,j+dt,z=zeval,zab=False,runcmp=True)

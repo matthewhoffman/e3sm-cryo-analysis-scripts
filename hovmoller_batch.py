@@ -15,21 +15,16 @@ from math import pi
 import weddell_mod as wed
 
 run_incr = ['ISMF','ISMF-noEAIS']#,'ISMF-3dGM']
-#lat = -1*(76 + 2.75/60)
-#lon = 360 - (30 + 59.65/60)
-#latS = 74.62
-#lonW = 30.58
-#latS = 76 + 2.75/60
-#lonW = 30 + 59.65/60
-lat = -73
-lon = 330
+year_range = [70,100]
+lat = -70
+lon = 340
+varlist = ['rho','rho']
+#varlist = ['T','S','rho']
 
-for i in run_incr:
-
-    wed.hovmoller(i,70,71,
-                  option='coord',coord=[lat,lon],zlim=[0,-500],
-                  varlist = ['T','S','rho'],limTrue=True,plot_pycnocline=True,
-                  savepath = '/global/homes/c/cbegeman/weddell_output/')
+wed.hovmoller(run_incr,year_range,varlist = varlist,
+              option='coord',coord=[lat,lon],zlim=[0,-500],
+              limTrue=True,plot_pycnocline=False,#True,
+              savepath = '/global/homes/c/cbegeman/weddell_output/')
 
 #    startyr = 70
 #    endyr = 80

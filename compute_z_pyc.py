@@ -30,9 +30,10 @@ var = ['z_pyc']
 run = ['ISMF','ISMF-noEAIS']
 yr = [70,101]
 loc = 'wed_pyc_Ryan'
-#zlim_shelf = [-500,10]#n=57
+#loc = 'gyre_interior'
+zlim_shelf = [-500,10]#n=57
 #zlim_shelf = [-2000,-1000]#n=21
-zlim_shelf = [-2000,-500]#n=50
+#zlim_shelf = [-2000,-500]#n=50
 #zlim_deep = [-3500,-1000]#n=84
 #zlim_deep = [-4500,-2500]# n=136
 zlim_deep = [-4500,-3500]# n=94
@@ -46,11 +47,11 @@ filenames= [
             'ISMF_zpyc_wed_pyc_Ryan_70-101_zlim-3500--1000']
 filename_T = 'ISMF_TS_20mab_76S30W_70-101'
 
-#get_number_samples = True
-get_number_samples = False
+get_number_samples = True
+#get_number_samples = False
+mask_ice = False
 #-----------------------------------------------------------
 if get_number_samples:
-    mask_ice = False
     #zlim = zlim_deep
     zlim = zlim_shelf
     
@@ -63,7 +64,7 @@ if get_number_samples:
     idx = idx[zmax >= zlim[0]]
     zmax     = np.multiply(-1,fmesh.variables['bottomDepth'][idx])
     idx = idx[zmax < zlim[1]] 
-    #print('Number of points in domain after depth filtering = ',len(idx))
+    print('Number of points in domain after depth filtering = ',len(idx))
     
     if mask_ice:
         landicemask  = fmesh.variables['landIceMask'][0,idx]
@@ -75,8 +76,9 @@ if get_number_samples:
 #wed.pycnocline_depth_t(yr,run_list=run,region=loc,plot_histogram=False,zlim=zlim_shelf)
 #wed.pycnocline_depth_t(yr,run_list=run,region=loc,plot_histogram=False,zlim=zlim_deep)
 
-wed.plot_zpyc_t(filenames,run=run,tlim=[70,100],placename=['on-shelf','off-shelf'])
-wed.plot_zpyc_t(filenames,run=run,tlim=[70,100],placename=['on-shelf','off-shelf'],plot_difference = True)
+#wed.plot_zpyc_t(filenames,run=run,tlim=[70,100],placename=['on-shelf','off-shelf'])
+#wed.plot_zpyc_t(filenames,run=run,tlim=[70,100],placename=['on-shelf','off-shelf'],plot_difference = True)
+
 #wed.plot_zpyc_corr(filenames[0],filename_T,run=run)
 #wed.plot_zpyc_corr(filenames[1],filename_T,run=run)
 

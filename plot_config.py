@@ -29,8 +29,10 @@ latmax = -80
 lonmin = 360-48
 lonmax = 360
 
-region_name = ['frisEAcoast','fris','gyre_interior','trough_shelf','trough_ice','M31W',
-               'S4E','wedwang','wed_pyc_Ryan'] # formerly loc
+region_name = ['frisEAcoast','fris','gyre_interior',
+               'trough_shelf','etrough_crossshelf','trough_crossshelf','wtrough_crossshelf',
+               'trough_ice','M31W','S4E','wedwang','wedwang_c',
+               'wed_pyc_Ryan','wed_pyc_Ryan_shallow','wed_pyc_Ryan_shelf'] # formerly loc
 # M31W and S4E from Ryan et al. 2017 JGR Oceans
 region_title = ['' for i in region_name] # loc_name
 #TODO fix allocation
@@ -40,6 +42,8 @@ region_zbounds     = np.zeros((len(region_name),2))
 for i in region_name:
     region_zbounds[region_name.index(i)] = [-9999.,20.]
 
+region_title[region_name.index('wed_pyc_Ryan_shelf')] = 'on-shelf'
+region_title[region_name.index('wed_pyc_Ryan_shallow')] = 'on-shelf'
 region_title[region_name.index('gyre_interior')] = 'off-shelf'
 region_title[region_name.index('trough_shelf')] = 'trough, shelf break'
 region_title[region_name.index('trough_shelf')] = 'trough, shelf break'
@@ -57,15 +61,31 @@ region_xybounds   [region_name.index('fris')]         = [0.2e6,1.5e6],[-1.5e6,-0
 region_coordbounds[region_name.index('fris')]         = [-1,361],[-181,181]
 region_xybounds   [region_name.index('wedwang')]      = [-6.5e6,6.5e6],[-6.5e6,6.5e6] 
 region_coordbounds[region_name.index('wedwang')]      = [305,315],[-74,-65] 
+region_xybounds   [region_name.index('wedwang_c')]    = [1.25e6,1.75e6],[-0.75e6,-0.75e6] 
+region_coordbounds[region_name.index('wedwang_c')]    = [330,335],[-75,-72]               
+region_zbounds    [region_name.index('wedwang_c')]    = [-3250,-750]
 region_xybounds   [region_name.index('wed_pyc_Ryan')] = [-6.5e6,6.5e6],[-6.5e6,6.5e6] 
 region_coordbounds[region_name.index('wed_pyc_Ryan')] = [330,360],[-75,-69] 
 region_xybounds   [region_name.index('trough_shelf')] = [-6.5e6,6.5e6],[-6.5e6,6.5e6] 
-region_coordbounds[region_name.index('trough_shelf')] = [325,330],[-74.75,-74.75]
+region_coordbounds[region_name.index('trough_shelf')] = [323,332],[-74.75,-74.75]
 region_xybounds   [region_name.index('trough_ice')]   = [-6.5e6,6.5e6],[-6.5e6,6.5e6] 
 region_coordbounds[region_name.index('trough_ice')]   = [314,325],[-78.1,-78.1]
 region_xybounds   [region_name.index('gyre_interior')]= region_xybounds[region_name.index('wed_pyc_Ryan')]
-region_coordbounds[region_name.index('gyre_interior')]= region_coordbounds[region_name.index('wed_pyc_Ryan')]
-region_zbounds    [region_name.index('gyre_interior')]= [-4500,-2500]
+region_coordbounds[region_name.index('gyre_interior')]= [330,360],[-75,-68]
+region_zbounds    [region_name.index('gyre_interior')]= [-4500,-3500]
+#region_zbounds    [region_name.index('gyre_interior')]= [-8000,-4500]
+region_xybounds   [region_name.index('wtrough_crossshelf')] = [1.25e6,1.75e6],[-0.75e6,-0.75e6] 
+region_coordbounds[region_name.index('wtrough_crossshelf')] = [320,329],[-76,-72]
+region_xybounds   [region_name.index('trough_crossshelf')] = [1.25e6,1.75e6],[-0.75e6,-0.75e6] 
+region_coordbounds[region_name.index('trough_crossshelf')] = [327,335],[-76,-72]
+region_xybounds   [region_name.index('etrough_crossshelf')] = [1.25e6,1.75e6],[-0.75e6,-0.75e6] 
+region_coordbounds[region_name.index('etrough_crossshelf')] = [332,338],[-76,-72]
+region_xybounds   [region_name.index('wed_pyc_Ryan_shallow')] = [-6.5e6,6.5e6],[-6.5e6,6.5e6] 
+region_coordbounds[region_name.index('wed_pyc_Ryan_shallow')] = [330,360],[-75,-69] 
+region_zbounds    [region_name.index('wed_pyc_Ryan_shallow')]= [-500,0]
+region_xybounds   [region_name.index('wed_pyc_Ryan_shelf')] = [-6.5e6,6.5e6],[-6.5e6,6.5e6] 
+region_coordbounds[region_name.index('wed_pyc_Ryan_shelf')] = [330,360],[-75,-69] 
+region_zbounds    [region_name.index('wed_pyc_Ryan_shelf')]= [-2000,-500]
 
 loc_ptsize = [40 for i in region_name]
 
@@ -98,11 +118,12 @@ run_color = ['cornflowerblue',
 savepath_nersc = '/global/homes/c/cbegeman/weddell_output/'
 runpath = [
 #          '/global/cfs/cdirs/m3412/simulations/20190225.GMPAS-DIB-IAF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist',
+#           '/project/m3412/mpas_analysis_output/polarRegions/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/'.
            '/global/cfs/cdirs/m3412/simulations/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist',
 #           '/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist',
            
 #            '/global/cfs/cdirs/m3412/simulations/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/archive/ocn/hist',
-             '/global/cfs/cdirs/m3412/simulations/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/ocn/hist/',
+             '/global/cfs/cdirs/m3412/simulations/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/ocn/hist',
            #'/global/cscratch1/sd/hoffman2/acme_scratch/edison/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/run',
 #           '/global/cscratch1/sd/hoffman2/acme_scratch/edison/archive/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/ocn/hist',
 
@@ -112,7 +133,7 @@ meshpath = ['/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60
             '/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc']
 
 vartitle = ['z','z_pyc','T','S','rho','u','v','U','taux','tauy','tau',
-            'ssh','ssh_cmp','curl','zice','u_barotropic','u_baroclinic']
+            'mean','ssh','ssh_cmp','curl','zice','u_barotropic','u_baroclinic']
 varlabel = [str() for i in vartitle]
 varlabel[0:7] = ['Depth (m)','T (degC)','S (PSU)','Pot. Density (kg/m3)',
                  'Velocity +East (m/s)','Velocity +North (m/s)',
@@ -124,6 +145,7 @@ varlabel[vartitle.index('tau')] = 'Surface stress'
 varlabel[vartitle.index('ssh')] = 'Sea Surface Height (m)'
 varlabel[vartitle.index('curl')] = 'curl'
 varlabel[vartitle.index('z_pyc')] = 'Pycnocline depth (m)'
+varlabel[vartitle.index('mean')] = 'Pycnocline depth (m)'
 varlabel[vartitle.index('u_barotropic')] = 'u barotropic (m/s)'
 varlabel[vartitle.index('u_baroclinic')] = 'u baroclinic (m/s)'
 #varlabel[vartitle.index('u_barotropic')] = 'Velocity, barotropic (m/s)'
@@ -151,12 +173,14 @@ varmin = [str() for i in vartitle]
 varmax = [str() for i in vartitle]
 varmin[vartitle.index('z')] = -1800
 varmax[vartitle.index('z')] = -100
-varmin[vartitle.index('T')] = -2.0
-varmax[vartitle.index('T')] = 1.0#-0.5
+varmin[vartitle.index('T')] = -2.1
+varmax[vartitle.index('T')] = 1.7#-0.5
 varmin[vartitle.index('S')] = 33.5#34.2
 varmax[vartitle.index('S')] = 34.6
-varmin[vartitle.index('rho')] = 1027.20#.40
-varmax[vartitle.index('rho')] = 1027.75
+varmin[vartitle.index('rho')] = 27.20#.40
+varmax[vartitle.index('rho')] = 27.75
+#varmin[vartitle.index('rho')] = 32.20
+#varmax[vartitle.index('rho')] = 32.60
 varmin[vartitle.index('u')] = -0.04
 varmax[vartitle.index('u')] =  0.04
 varmin[vartitle.index('v')] = -0.04
@@ -183,7 +207,7 @@ varmax[vartitle.index('u_baroclinic')] = 0.04
 
 # increment for variables
 dvar = [str() for i in vartitle]
-dvar[vartitle.index('T')] = 0.1
+dvar[vartitle.index('T')] = 0.2
 dvar[vartitle.index('S')] = 0.01
 dvar[vartitle.index('rho')] = 0.01
 dvar[vartitle.index('u')] = .001
@@ -208,7 +232,7 @@ varcmap[vartitle.index('U')] = 'cmo.speed'
 varcmap[vartitle.index('ssh')] = 'cmo.speed'
 
 # fontsize
-fs=16
+fs=14
 # linewidth
 lw1 = 1
 

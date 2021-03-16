@@ -23,17 +23,19 @@ var_incr = ['T','S','u','v']
 lat = -73
 lon = 360-30
 
-startyr = 100#,60,70,80,90]
-#endyr = 80
+year_range = [80,80]
 dt = 1 
 zeval = 20
 
 #run_incr = 'ISMF'
 run_incr = ['ISMF','ISMF-noEAIS']
 #wed.TS_diagram(run_incr,lat,lon,startyr,startyr+dt,z=zeval,zab=False,zall=True,seasonal=True)
-wed.TS_diagram(lat,lon,startyr,startyr+dt,
-               run_list=run_incr,zall=True,
+wed.TS_diagram(run_incr,year_range,
+               zall=True,
                seasonal=False,plot_lines=False)
+#wed.TS_diagram(lat,lon,startyr,startyr+dt,
+#               run_list=run_incr,zall=True,
+#               seasonal=False,plot_lines=False)
 #
 #run_incr = 'ISMF-noEAIS'
 #wed.TS_diagram(run_incr,latS,lonW,startyr,startyr+dt,z=zeval,zab=True,zall=True,seasonal=True)
