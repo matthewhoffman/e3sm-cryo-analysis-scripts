@@ -11,11 +11,12 @@ import matplotlib.pyplot as plt
 import scipy.signal
 from matplotlib import cm
 
-fmesh=netCDF4.Dataset('/project/projectdirs/acme/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc')
+fmesh=netCDF4.Dataset('/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc')
 latCell = fmesh.variables['latCell'][:]
 lonCell = fmesh.variables['lonCell'][:]
 xCell = fmesh.variables['xCell'][:]
 yCell = fmesh.variables['yCell'][:]
+areaCell= fmesh.variables['areaCell'][:]
 depths = fmesh.variables['refBottomDepth'][:]
 z = np.zeros(depths.shape)
 z[0] = -0.5 * depths[0]
@@ -32,7 +33,7 @@ idxFT =  np.nonzero( (latCell<-76.0/180.0*pii) * (latCell>-78.0/180.0*pii) * (lo
 idxEAIS = np.nonzero(  (lonCell>330.0/360.0*2.0*pii) + (lonCell<60.0/360.0*2*pii) )[0]
 #idxSill=210384-1 # filchner sill
 
-path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/run'
+path='/project/projectdirs/m3412/simulations/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist'
 #path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF.T62_oEC60to30v3wLI.cori-knl/run'
 #path='/global/cscratch1/sd/hoffman2/acme_scratch/edison/archive/20190306.A_WCYCL1850-DIB-ISMF_CMIP6.ne30_oECv3wLI.edison/ocn/hist'
 #path='/global/cscratch1/sd/hoffman2/acme_scratch/edison/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/run'
@@ -40,7 +41,8 @@ path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF-
 #diffpath = False
 #diffpath='/global/cscratch1/sd/hoffman2/acme_scratch/edison/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/run'
 
-years = np.arange(50,110,1)
+#years = np.arange(50,110,1)
+years = np.arange(50,55,1)
 months = np.arange(1,13,1)
 months = np.arange(1,2,1)
 nt = len(years)*len(months)
@@ -75,16 +77,16 @@ times = np.zeros((nt,))
 t=0
 for yr in years:
  for mo in months:
-   print "yr=",yr, "mo=", mo
+   print("yr=",yr, "mo=", mo)
 
    times[t] = yr+(mo-1.0)/12.0
 
    f=netCDF4.Dataset('{0}/mpaso.hist.am.timeSeriesStatsMonthly.{1:04d}-{2:02d}-01.nc'.format(path, yr, mo), 'r')
    Mdata = f.variables['timeMonthly_avg_landIceFreshwaterFlux'][0, idxEAIS]
-   MEAIS[t] = Mdata.sum()  # need area cell...
+   MEAIS[t] = (Mdata*areaCell[idxEAIS]).sum()
    for i in range(nBoxes):
       Mdata = f.variables['timeMonthly_avg_landIceFreshwaterFlux'][0, Boxes[i]]
-      Mall[t,i] = Mdata.sum()  # need area cell...
+      Mall[t,i] = (Mdata*areaCell[Boxes[i]]).sum()
       for k in range(nZbins):
          Sdata = f.variables['timeMonthly_avg_activeTracers_salinity'][0, Boxes[i], Zbins[k]]
          Sall[t, i, k] = np.ma.array(Sdata, mask=( (Sdata<30.0) + (Sdata>40.0) ) ).mean()
@@ -93,7 +95,7 @@ for yr in years:
    t += 1
 
 
-print "beginning plot"
+print("beginning plot")
 fsz=(12,9)
 fig = plt.figure(1, facecolor='w', figsize=fsz)
 nrow=nBoxes+1

@@ -33,6 +33,13 @@ runs['ISMF-noEAIS'] = {'ts_dir':
 'end':150
 }
 
+runs['ISMF-noDIB'] = {'ts_dir':
+#'/global/cscratch1/sd/dcomeau/e3sm_scratch/cori-knl/mpas-analysis-output/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/yrs120-150/timeseries/iceShelfFluxes',
+'/global/homes/h/hoffman2/cryo_data/ISMF-noDIB',
+'start':1,
+'end':100
+}
+
 
 runs['ISMF-MGM'] = {'ts_dir':
 #'/global/cscratch1/sd/xylar/analysis/20190819.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl.testNewGM/',
@@ -46,31 +53,34 @@ nrow=1
 ncol=1
 axMelt = fig1.add_subplot(nrow, ncol, 1)
 
-region=5
+region=5 #FIS
+Rregion=6 #RIS
+#7=FRIS
+
+#colors=[ cm.tab10(x) for x in np.linspace(0.0, 1.0, 4) ]
+r=0
 for run in runs:
     thisDict = runs[run]
     print(thisDict['ts_dir'])
     filelist = glob.glob(os.path.join(thisDict['ts_dir'], 'iceShelfFluxes*.nc'))
 
-    melt = np.zeros((thisDict['end']-thisDict['start']+1))
+    Fmelt = np.zeros((thisDict['end']-thisDict['start']+1))
+    Rmelt = np.zeros((thisDict['end']-thisDict['start']+1))
     year = np.zeros((thisDict['end']-thisDict['start']+1))
     i=0
     for infile in sorted(filelist): 
        #print(infile, i)
        #do some fancy stuff
        f=netCDF4.Dataset(infile, 'r')
-       melt[i] = f.variables['totalMeltFlux'][:, region].mean()
+       Fmelt[i] = f.variables['totalMeltFlux'][:, region].mean()
        year[i] = f.variables['Time'][0] / 365.0 + 1.0 # adding 1.0 offset because sims started then
+
+       Rmelt[i] = f.variables['totalMeltFlux'][:, Rregion].mean()
        i += 1
-
-
-
-    #fpath = thisDict['ts_dir']+'/iceShelfFluxes*.nc'
-    #print(fpath)
-    #ds = xr.open_mfdataset(fpath, concat_dim="time",
-    #              data_vars='minimal', coords='minimal', compat='override')
     
-    axMelt.plot(year, melt, label=run)
+    axMelt.plot(year, Fmelt, label=run, color=cm.tab10(r))
+    axMelt.plot(year, Rmelt, '--', color=cm.tab10(r))
+    r+=1
 
 
 

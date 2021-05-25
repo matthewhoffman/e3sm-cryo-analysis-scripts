@@ -27,7 +27,7 @@ pii=3.14159
 
 
 # ---- Choose time(s) -----
-yrs=(95,)
+yrs=(150,)
 #yrs = np.arange(95,102,1)
 mos=(1,)
 #mos=np.arange(1,13,1)
@@ -41,13 +41,28 @@ idx = np.nonzero(np.logical_and(np.logical_and(latCell<-77.4/180.0*pii, latCell>
 #idx = np.nonzero(np.logical_and(np.logical_and(latCell<-70.0/180.0*pii, latCell>-85.0/180.0*pii), np.logical_and(lonCell>300.0/360.0*2.0*pii, lonCell<350.0/360.0*2*pii)))[0]  #entire weddell
 #idx = np.nonzero(np.logical_and(np.logical_and(latCell<-70.0/180.0*pii, latCell>-85.0/180.0*pii), np.logical_and(lonCell>270.0/360.0*2.0*pii, lonCell<350.0/360.0*2*pii)))[0]  #entire weddell wider
 #idx = np.nonzero( (latCell<-60.0/180.0*pii) * (latCell>-85.0/180.0*pii) * np.logical_or(lonCell>280.0/360.0*2.0*pii, lonCell<80.0/360.0*2*pii))[0]; size=1.4; fsz=(15,9)  # weddell to Amery 
+#idx = np.nonzero(np.logical_and(np.logical_and(latCell<-72.0/180.0*pii, latCell>-85.0/180.0*pii), np.logical_and(lonCell>291.0/360.0*2.0*pii, lonCell<350.0/360.0*2*pii)))[0]  # Daae 2020 region
 #idx = np.nonzero( (latCell<-50.0/180.0*pii) )[0] # SO
-# -------------------------
 
+maskFile = '/global/cfs/cdirs/e3sm/diagnostics/mpas_analysis/region_masks/oEC60to30v3wLI_antarcticRegions20200621.nc'
+fMask = netCDF4.Dataset(maskFile, 'r')
+regionNames = fMask.variables['regionNames'][:]
+wedShelfIdx = np.nonzero(regionNames=='Weddell Sea Shelf')[0][0]
+
+shelfMaskFile='/global/cfs/cdirs/e3sm/diagnostics/mpas_analysis/region_masks/oEC60to30v3wLI_iceShelves20200621.nc'
+fShelfMask = netCDF4.Dataset(shelfMaskFile, 'r')
+fShelfMask.set_auto_mask(False)
+shelfRegionNames = netCDF4.chartostring(fShelfMask.variables['regionNames'][:])
+FRISIdx = np.nonzero(shelfRegionNames=='Filchner-Ronne')[0][0]
+
+# Mask of Weddell + FRIS
+idx = np.nonzero(np.logical_or(fMask.variables['regionCellMasks'][wedShelfIdx,:], fShelfMask.variables['regionCellMasks'][:,FRISIdx]))[0]
+# -------------------------
 
 # ---- Choose run directory ----
 path='/project/projectdirs/m3412/simulations/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist/'
 #path='/project/projectdirs/m3412/simulations/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/ocn/hist/'
+#path='/project/projectdirs/m3412/simulations/20190819.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl.testNewGM/archive/ocn/hist'
 # -------------------------
 
 
@@ -59,18 +74,24 @@ plt.plot(yCell[idx2], xCell[idx2], 'k.')
 plt.plot(yCell[idx], xCell[idx], 'r.')
 
 
-fig1 = plt.figure(1, facecolor='w') # TS
-nrow=1
-ncol=1
 doTS=True
+#doTS=False
+if doTS:
+   fig1 = plt.figure(1, facecolor='w') # TS
+   nrow=1
+   ncol=1
 
-fig2 = plt.figure(2, facecolor='w') # velo
+doVelo=True
 doVelo=False
+if doVelo:
+   fig2 = plt.figure(2, facecolor='w') # velo
+   figTransportMelt = plt.figure(4, facecolor='w') # velo
 
-figFW = plt.figure(3, facecolor='w') # FW sfc budget
-#figFW2 = plt.figure(4, facecolor='w') # FW sfc budget
 doFW=True
 doFW=False
+if doFW:
+   figFW = plt.figure(3, facecolor='w') # FW sfc budget
+   #figFW2 = plt.figure(4, facecolor='w') # FW sfc budget
 
 nVertLev = len(fmesh.dimensions['nVertLevels'])
 zs = np.zeros((len(idx), nVertLev))
@@ -113,12 +134,13 @@ for yr in yrs:
    Ss = S[0,idx,:]
 #   Ts[zs>-200.0]=0.0; Ss[zs>-200.0]=0.0 # remove shallow values
    cmap = plt.cm.get_cmap('viridis', 64)
-   cmap.set_over('0.8')
-   sc=axTS.scatter(Ss[:], Ts[:], s=1, c=zs, vmin=-700, vmax=-200.0, cmap=cmap)
+   #cmap.set_over('0.8')
+   #sc=axTS.scatter(Ss[:], Ts[:], s=1, c=zs, vmin=-700, vmax=-200.0, cmap=cmap)
+   sc=axTS.scatter(Ss[:], Ts[:], s=1, c=zs, vmin=-1000, vmax=0.0, cmap=cmap)
    
-   #axTS.set_ylim([-2.6,2.0])
-   #axTS.set_xlim([33.0,34.8])
-   axTS.set_ylim([-2.35,-1.4]); axTS.set_xlim([34.1,34.75])  # Darelius 2016 range
+   axTS.set_ylim([-2.6,3.0]); axTS.set_xlim([33.0,34.8])
+   #axTS.set_ylim([-2.35,-1.4]); axTS.set_xlim([34.1,34.75])  # Darelius 2016 range
+   #axTS.set_ylim([-3,1.5]); axTS.set_xlim([34.0,34.8])  # Daae 2020 S6 range
    plt.colorbar(sc)
    
    plt.plot([34.0, 34.0], [-1.85, 0.2], 'k:')
@@ -139,28 +161,42 @@ for yr in yrs:
    swsv=f.variables['timeMonthly_avg_windStressMeridional'][0,idx]
    swsu=f.variables['timeMonthly_avg_windStressZonal'][0,idx]
 
+   melt = f.variables['timeMonthly_avg_landIceFreshwaterFlux'][0,idx]
+
    print(" calc mean velo")
    maxLevelCell=fmesh.variables['maxLevelCell'][idx]
    layerThickness = fmesh.variables['layerThickness'][0, idx, :]
    umean=np.zeros((len(idx),))
    vmean=np.zeros((len(idx),))
+   uBtm=np.zeros((len(idx),))
+   vBtm=np.zeros((len(idx),))
    for i in range(len(idx)):
        layersum=0.0
        maxLevelHere = maxLevelCell[i]
        umean[i]=(u[i,:maxLevelHere]*layerThickness[i,:maxLevelHere]).sum()/layerThickness[i,:maxLevelHere].sum()
        vmean[i]=(v[i,:maxLevelHere]*layerThickness[i,:maxLevelHere]).sum()/layerThickness[i,:maxLevelHere].sum()
+       uBtm[i]=u[i,maxLevelHere-1]
+       vBtm[i]=v[i,maxLevelHere-1]
    print("done")
    umag = (umean**2+vmean**2)**0.5
+   umagBtm = (uBtm**2+vBtm**2)**0.5
  
    fig2.clf()
+   figTransportMelt.clf()
    
-   axUsrf = fig2.add_subplot(2, 2, 1)
-   axUsrf.axis('equal')
-   plt.quiver(yCell[idx], xCell[idx], u[:,0], v[:,0])
-   print("d={}, z={}".format(0, z[0]))
-   plt.title("year={}, depth={}m".format(yr, z[0]))
-   plt.title
+#   axUsrf = fig2.add_subplot(2, 2, 1)
+#   axUsrf.axis('equal')
+#   plt.sca(axUsrf)
+#   plt.quiver(yCell[idx], xCell[idx], u[:,0], v[:,0])
+#   print("d={}, z={}".format(0, z[0]))
+#   plt.title("year={}, depth={}m".format(yr, z[0]))
    
+   axUbtm = fig2.add_subplot(2, 2, 1)
+   axUbtm.axis('equal')
+   plt.sca(axUbtm)
+   plt.quiver(yCell[idx], xCell[idx], uBtm/umagBtm, vBtm/umagBtm, np.minimum(umag, 0.03), units='width')
+   plt.title("year={}, bottom velo".format(yr))
+   plt.colorbar()
    
    d=np.argmin(np.absolute(z--250.0))
    print("d={}, z={}".format(d, z[d]))
@@ -170,9 +206,13 @@ for yr in yrs:
    plt.quiver(yCell[idx], xCell[idx], u[:,d], v[:,d])
    plt.title("year={}, depth={}m".format(yr, z[d]))
 
-   axUmn = fig2.add_subplot(2,2, 3)
+
+   # Transport and melt plot
+   axUmn = figTransportMelt.add_subplot(1,1,1)
    axUmn.axis('equal')
    #plt.tricontourf(yCell[idx], xCell[idx], umag); plt.colorbar()
+   umean[umag<0.005]=0.0; vmean[umag<0.005]=0.0
+   #plt.tricontourf(yCell[idx], xCell[idx], melt); plt.colorbar()
    plt.quiver(yCell[idx], xCell[idx], umean[:]/umag, vmean[:]/umag,  np.minimum(umag, 0.03),  units='width')
    #plt.streamplot(Yi, Xi, ureg, vreg)#, density=[0.5, 1])
    plt.title("year={}, mean velo".format(yr))

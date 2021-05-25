@@ -11,11 +11,12 @@ import matplotlib.pyplot as plt
 import scipy.signal
 from matplotlib import cm
 
-fmesh=netCDF4.Dataset('/project/projectdirs/acme/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc')
+fmesh=netCDF4.Dataset('/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc')
 latCell = fmesh.variables['latCell'][:]
 lonCell = fmesh.variables['lonCell'][:]
 xCell = fmesh.variables['xCell'][:]
 yCell = fmesh.variables['yCell'][:]
+bottomDepth = fmesh.variables['bottomDepth'][:]
 depths = fmesh.variables['refBottomDepth'][:]
 z = np.zeros(depths.shape)
 z[0] = -0.5 * depths[0]
@@ -29,26 +30,26 @@ size=28
 fsz=(8,9)
 #idx = np.nonzero(np.logical_and(np.logical_and(latCell<-75.0/180.0*pii, latCell>-78.0/180.0*pii), np.logical_and(lonCell>320.0/360.0*2.0*pii, lonCell<330.0/360.0*2*pii)))[0]  #filchner trough in front of ice shelf
 #idx = np.nonzero(np.logical_and(np.logical_and(latCell<-78.0/180.0*pii, latCell>-85.0/180.0*pii), np.logical_and(lonCell>315.0/360.0*2.0*pii, lonCell<330.0/360.0*2*pii)))[0]  #filchner ice shelf
-#idx = np.nonzero(np.logical_and(np.logical_and(latCell<-70.0/180.0*pii, latCell>-85.0/180.0*pii), np.logical_and(lonCell>300.0/360.0*2.0*pii, lonCell<350.0/360.0*2*pii)))[0]  #entire weddell
+idx = np.nonzero(np.logical_and(np.logical_and(latCell<-70.0/180.0*pii, latCell>-85.0/180.0*pii), np.logical_and(lonCell>280.0/360.0*2.0*pii, lonCell<350.0/360.0*2*pii)))[0]  #entire weddell
 #idx = np.nonzero(np.logical_and(np.logical_and(latCell<-70.0/180.0*pii, latCell>-85.0/180.0*pii), np.logical_and(lonCell>310.0/360.0*2.0*pii, lonCell<350.0/360.0*2*pii)))[0]  #eastern weddell
-idx = np.nonzero( (latCell<-65.0/180.0*pii) * (latCell>-85.0/180.0*pii) * np.logical_or(lonCell>280.0/360.0*2.0*pii, lonCell<20.0/360.0*2*pii))[0]; size=8;  #entire weddell+
+#idx = np.nonzero( (latCell<-65.0/180.0*pii) * (latCell>-85.0/180.0*pii) * np.logical_or(lonCell>280.0/360.0*2.0*pii, lonCell<20.0/360.0*2*pii))[0]; size=8;  #entire weddell+
 #idx = np.nonzero( (latCell<-60.0/180.0*pii) )[0]; size=1; sz=(14,10); #entire SO
 #idx = np.nonzero( (latCell<-50.0/180.0*pii) * (latCell>-85.0/180.0*pii) * np.logical_or(lonCell>280.0/360.0*2.0*pii, lonCell<80.0/360.0*2*pii))[0]; size=1.0; fsz=(15,10)  # weddell to Amery 
 
 idxSill=210384-1 # filchner sill
 
-path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist/'
-#path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF.T62_oEC60to30v3wLI.cori-knl/run'
-#path='/global/cscratch1/sd/hoffman2/acme_scratch/edison/archive/20190306.A_WCYCL1850-DIB-ISMF_CMIP6.ne30_oECv3wLI.edison/ocn/hist'
-#path='/global/cscratch1/sd/hoffman2/acme_scratch/edison/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/run'
-#path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist/'
+#path='/project/projectdirs/m3412/simulations/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist/'; run= 'control'
+#path='/project/projectdirs/m3412/simulations/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/ocn/hist/'; run='noEAmelt'
+#path='/project/projectdirs/m3412/simulations/20190819.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl.testNewGM/archive/ocn/hist'; run='modGM'
+path='/global/cscratch1/sd/hoffman2/e3sm_scratch/cori-knl/20191003.GMPAS-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist'; run='uniformIB'
 
 diffpath = False
 #diffpath='/global/cscratch1/sd/hoffman2/acme_scratch/edison/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/run'
 
-years = np.arange(60,116,1)
-months = np.arange(1,13,1)
-#months = np.arange(1,2,1)
+#years = np.arange(60,116,1)
+years = np.arange(50,80,1)
+#months = np.arange(1,13,1)
+months = np.arange(1,2,1)
 nt = len(years)*len(months)
 
 
@@ -146,14 +147,18 @@ for yr in years:
    if diffpath:
       sc1 = ax0.scatter(yCell[idx], xCell[idx], s=size, c=(iv-ivd), vmin=-1.0*7, vmax=7, cmap='RdBu')
    else:
-      sc1 = ax0.scatter(yCell[idx], xCell[idx], s=size, c=(Tbot), vmin=-2, vmax=2, cmap='RdYlBu_r')
+      #sc1 = ax0.scatter(yCell[idx], xCell[idx], s=size, c=(Tbot), vmin=-2, vmax=2, cmap='RdYlBu_r')
+      sc1 = ax0.scatter(yCell[idx], xCell[idx], s=size, c=(Tbot), vmin=-2.4, vmax=0.5, cmap='inferno') #Daee 2020 GRL Fig. 2
+
 #      sc1.cmap.set_under('k')
+      ax0.tricontour(yCell[idx], xCell[idx], Tbot, [-1.9], colors=['white'], linestyles='dashed')  #Daee 2020 GRL Fig 2
+      ax0.tricontour(yCell[idx], xCell[idx], bottomDepth[idx], [1000], colors=['black'], linestyles='solid') # 1000 m contour
    i2 = np.nonzero(idx==idxSill)[0][0]
    fig.colorbar(sc1, ax=ax0)
    ax0.plot(yCell[idxSill], xCell[idxSill], 'k.')
    ax0.axis('equal')
    #ax0.set_title("{}:\n year {}, mo {}; Tbot".format(path, yr, mo), fontsize=7)
-   ax0.set_title("year {}, mo {}; T bottom".format(yr, mo))
+   ax0.set_title("{}: year {}, mo {}; T bottom".format(run, yr, mo))
    plt.axis('off')
 
 
@@ -259,7 +264,7 @@ for yr in years:
 
 
    plt.draw()
-   plt.savefig('temp_map_yr{:04d}-{:02d}.png'.format(yr, mo))
+   plt.savefig('temp_map_yr{:04d}-{:02d}_{}.png'.format(yr, mo, run))
    plt.clf()
 
 
