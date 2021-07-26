@@ -150,7 +150,7 @@ runname = ['ISMF',
            'ISMF-noDIB',
            'B-ISMF-bug',
            'B-ISMF']
-run_tipping_year = [98, nan, nan, 71]
+run_tipping_year = [98, nan, nan, 71, nan, nan]
 #run_color = ['cornflowerblue',
 #             'k',
 #             'darkorange']
@@ -158,6 +158,7 @@ run_color = ['k',
              '#1b9e77',
              '#d95f02',
              '#7570b3',
+             'r',
              'k']
 #run_color = ['b',
 #             '#1b9e77',
@@ -186,7 +187,8 @@ meshpath = ['/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60
             '/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
             '/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
             '/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
-            '/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc']
+            '/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
+            '/lcrc/group/acme/data/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc']
 
 
 vartitle = ['z','z_pyc','T','S','rho','u','v','U','taux','tauy','tau','sea_ice_fw_flux','land_ice_fw_flux',

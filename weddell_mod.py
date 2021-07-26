@@ -453,9 +453,9 @@ def tseries1(runlist,varlist,year_range,
              reference_run = '', ratio_barotropic = [False], 
              input_filename = '', input_filename2 = '', var2 = '',
              shade_season = False, year_overlay=False,
-             print_to_file = True, create_figure = False,
+             print_to_file = True, create_figure = True,
              show_obs = False, obs = [-9999,9999],
-             overwrite=True, savepath=savepath_nersc): 
+             overwrite=False, savepath=savepath_nersc): 
 
     linestyle = ['-' for i in runlist]
     if zab:
@@ -499,6 +499,7 @@ def tseries1(runlist,varlist,year_range,
     if input_filename == '':
         input_filename = filename
     print(filename)
+    print(savepath+input_filename)
 
     if (not os.path.exists(savepath + input_filename + '.txt') or overwrite) and print_to_file:
         print('extracting time series')
@@ -507,7 +508,7 @@ def tseries1(runlist,varlist,year_range,
                         operation = operation,
                         ztop_pyc = ztop_pyc, zbottom_pyc = zbottom_pyc,
                         zrange=zrange,zab=zab, zeval=zeval,
-                        output_filename = filename)
+                        savepath=savepath,output_filename = filename)
     
     if not create_figure:
         return
@@ -544,9 +545,9 @@ def tseries1(runlist,varlist,year_range,
             if zbottom_pyc[i]:
                 header = header + '_belowpyc'
                 if reference_run != '':
-                    yaxislabel = r'$\rho_{DSW} \: - \: \rho_{DSW,CTRL} \: (kg \: m^{-3})$'
+                    yaxislabel = r'$\sigma_{DSW} \: - \: \sigma_{DSW,CTRL} \: (kg \: m^{-3})$'
                 else:
-                    yaxislabel = r'$\rho_{DSW} \: (kg \: m^{-3})$'
+                    yaxislabel = r'$\sigma_{DSW} \: (kg \: m^{-3})$'
             data = df[header][:]
             if input_filename2 != '':
                 data2 = df2[run+'_'+var2][:]
@@ -606,8 +607,12 @@ def tseries1(runlist,varlist,year_range,
                              linestyle = linestyle[j],
                              color = run_color[runname.index(run)])
             yl = ax.get_ylim()
-            ax.plot([run_tipping_year[runname.index(run)], run_tipping_year[runname.index(run)]], 
-                     [-100, 2000], ':', color=run_color[runname.index(run)],lineWidth=lw1)
+            ax.plot([run_tipping_year[runname.index(run)], 
+                     run_tipping_year[runname.index(run)]], 
+                     #[-100, 2000], 
+                     yl,
+                     ':', color=run_color[runname.index(run)],
+                     lineWidth=lw1)
             ax.set_ylim(yl)
         if shade_season:
             if year_overlay:
@@ -779,7 +784,7 @@ def hovmoller(runlist,year_range,
         times = np.append(times,np.max(times)+(1/12))
         # one more time point is needed to specify the right points of quadrilateral
         
-        zbottom = np.zeros(200)
+        zbottom = np.zeros(270)
         zcol = []
         i = 0
         # ztop is already written to specify the upper points of quadrilateral
@@ -977,7 +982,7 @@ def profile(runlist,varlist,year_range,
 def fluxgate(transect_id, yrrange = [50,51], morange = [1,13],
              run_incr=['ISMF'], runcmp = False, runcmpname='ISMF-noEAIS',
              mode = 'barotropic-baroclinic', overwrite=False, 
-             plot_map = False, plot_transect=False, 
+             plot_map = False, plot_transect=False, write_depth_values=False, 
              savepath=savepath_nersc):
     
     # import variables from file
@@ -985,7 +990,7 @@ def fluxgate(transect_id, yrrange = [50,51], morange = [1,13],
     
     cellidx, idx, dist, transect_angle = pick_transect(#option='by_index',
                                          run=run_incr[0],transect_name = transect_id,
-                                         overwrite=plot_map) 
+                                         overwrite=plot_map, savepath=savepath) 
     dv    = fmesh.variables['dvEdge'][idx] # length of edge between vertices
     angle = fmesh.variables['angleEdge'][idx] # angle in rad an edge normal vector makes with eastward
     
@@ -1070,17 +1075,18 @@ def fluxgate(transect_id, yrrange = [50,51], morange = [1,13],
             col_headings.append(run+'_F_baroclinic_err')
         col_headings_z.append(zu[0]+zuh[0])
         for i in zu:
-            col_headings_z.append(i) 
+            col_headings_z.append(i)
     print(savepath+run_incr[0]+output_filename+'.txt') 
     table_file = open(savepath+run_incr[0]+output_filename+'.txt',flag)
     wr = csv.writer(table_file,dialect='excel')
     wr.writerow(col_headings)
-    for run in run_incr:
-        print(savepath+run+output_filename+'_z.txt') 
-        table_file_z = open(savepath+run+output_filename+'_z.txt',flag)
-        wrz = csv.writer(table_file_z,dialect='excel')
-        wrz.writerow(col_headings_z)
-        table_file_z.close()
+    if write_depth_values: 
+        for run in run_incr:
+            print(savepath+run+output_filename+'_z.txt') 
+            table_file_z = open(savepath+run+output_filename+'_z.txt',flag)
+            wrz = csv.writer(table_file_z,dialect='excel')
+            wrz.writerow(col_headings_z)
+            table_file_z.close()
     
     for yr in range(yrrange[0],yrrange[1]):
         for mo in range(morange[0],morange[1]):
@@ -1178,10 +1184,11 @@ def fluxgate(transect_id, yrrange = [50,51], morange = [1,13],
                     for i in u_baroclinic_zsum:
                         row_entries_z.append(i)
             wr.writerow(row_entries)
-            table_file_z = open(savepath+run+output_filename+'_z.txt',flag)
-            wrz = csv.writer(table_file_z,dialect='excel')
-            wrz.writerow(row_entries_z)
-            table_file_z.close()
+            if write_depth_values:
+                table_file_z = open(savepath+run+output_filename+'_z.txt',flag)
+                wrz = csv.writer(table_file_z,dialect='excel')
+                wrz.writerow(row_entries_z)
+                table_file_z.close()
             # in a separate text file, write 1st row depths, subsequent rows per time
             
             if plot_transect: 

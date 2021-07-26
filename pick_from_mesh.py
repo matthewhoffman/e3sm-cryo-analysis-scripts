@@ -161,7 +161,7 @@ def pick_transect(option='coord',lat=[-76,-76],lon=[360-32,360-32],run='ISMF',
             zmax = 0.
             zmin = -9999.
         
-        p1,p2 = (lon[0],lat[0]), (lon[1],lat[1])
+        p1,p2 = (lon[0]-360,lat[0]), (lon[1]-360,lat[1])
         frac_along_route = 0.05
         lat_interp = np.zeros((int(1/frac_along_route)))
         lon_interp = np.zeros((int(1/frac_along_route)))
