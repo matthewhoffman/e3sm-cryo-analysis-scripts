@@ -19,22 +19,23 @@ from math import pi
 import weddell_mod as wed
 from pick_from_mesh import pick_transect 
 
-run_incr = ['ISMF','ISMF-noEAIS']#,'ISMF-3dGM']
-latS = [74,75]
-lonW = [30,30]
-startyr = 50
-endyr = 101 
-i=1
+run_incr = ['ISMF','ISMF-noDIB','ISMF-noEAIS','ISMF-3dGM']
+#latS = [74,75]
+#lonW = [30,30]
+startyr = 10
+endyr = 180 
+#i=1
 savepath = '/global/homes/c/cbegeman/weddell_output/fluxgate/'
 locname = 'wedwang_c'
-filename = 'ISMF_transect_flux_'+locname+'_'+str(startyr)+'-'+str(endyr)
+#filename = 'ISMF_transect_flux_'+locname+'_'+str(startyr)+'-'+str(endyr)
 #pick_transect(transect_name = locname,overwrite=True)
-#wed.fluxgate(locname,yrrange=[startyr,endyr],morange = [1,12+1],run_incr=run_incr,
-#             mode = 'pos-neg',plot_map = False, plot_transect = False,
-#             overwrite=True,savepath = savepath)
-wed.plot_fluxgate_t(filename,tlim=[70,100],
-                    run_incr = run_incr, mode = 'pos-neg',
-                    var_incr = ['total'],savepath = savepath)
+wed.fluxgate(locname,yrrange=[startyr,endyr],morange = [1,12+1],run_incr=run_incr,
+             mode = 'barotropic-baroclinic', #mode = 'pos-neg',
+             plot_map = False, plot_transect = False,
+             overwrite=True,savepath = savepath)
+#wed.plot_fluxgate_t(filename,tlim=[70,100],
+#                    run_incr = run_incr, mode = 'pos-neg',
+#                    var_incr = ['total'],savepath = savepath)
 
 #wed.plot_stresscurl_t('ISMF',yrrange=[startyr,endyr],overwrite=True,runcmp=True)
 #wed.plot_stresscurl_t_diff('windstresscurl_wedwang'+'_'+str(startyr)+'-'+str(endyr),tlim = [70.,80.])

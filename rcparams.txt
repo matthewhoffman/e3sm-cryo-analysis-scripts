@@ -2,12 +2,13 @@ axes.formatter.limits   : -3,3
 axes.formatter.min_exponent : 3 
 axes.formatter.useoffset : True
 axes.formatter.offset_threshold : 4 
-axes.labelsize : 16
+axes.labelsize : 14
 
 figure.titlesize : 16
 figure.dpi : 200 
 figure.facecolor : white
 figure.edgecolor : white
+figure.figsize : 12.,4.
 
 font.family : sans-serif
 font.sans-serif : Helvetica
@@ -32,6 +33,6 @@ scatter.marker : .
 #text.usetex : True
 #text.latex.unicode :False 
 
-xtick.labelsize : 14
+xtick.labelsize : 12
 
-ytick.labelsize : 14
+ytick.labelsize : 12

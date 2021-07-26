@@ -267,11 +267,10 @@ def z_pycnocline(z,T,S,diags=False,cellidx=0,zmin=-9999,
 #   savepath  path to save plot images
 #----------------------------------------------------------------------
 def extract_tseries(runlist,varlist,year_range,
-                    placename = '',
+                    placename = '',#region = '',
                     lat=-9999,lon=-9999,
-                    zrange=[20,-9999],zeval = -9999,zab=False,
+                    zrange=[20,-9999],zeval = [-9999],zab=False,
                     ztop_pyc = [False],zbottom_pyc = [False],
-                    operation = 'mean',
                     overwrite=True, output_filename = '',
                     savepath=savepath_nersc): 
 
@@ -280,10 +279,13 @@ def extract_tseries(runlist,varlist,year_range,
     else:
         m = 'm'
     
+    if len(zeval) < len(varlist):
+        zeval = [zeval[0] for i in varlist]
     if len(ztop_pyc)<len(varlist):
         ztop_pyc = [False for i in varlist]
     if len(zbottom_pyc)<len(varlist):
         zbottom_pyc = [False for i in varlist]
+ 
     if output_filename == '':
         filename = ('_'.join(runlist) + '_' + 
                     ''.join(varlist) + '_' + placename +
@@ -291,7 +293,7 @@ def extract_tseries(runlist,varlist,year_range,
                     '_t{0:03d}-{1:03d}'.format(year_range[0], year_range[1]) )
     else:
         filename = output_filename
-    print('extract tseries',savepath + filename + '.txt')
+    print(savepath + filename + '.txt')
     
     years = np.arange(year_range[0],year_range[1],1)
     months = np.arange(1,13,1)
@@ -299,13 +301,10 @@ def extract_tseries(runlist,varlist,year_range,
     times = np.zeros((nt,))
     
     fmesh = netCDF4.Dataset(meshpath[runname.index(runlist[0])])
-    if placename in region_is_point:
-        lat = region_coordbounds[region_name.index(placename)][1,1]
-        lon = region_coordbounds[region_name.index(placename)][0,0]
-        idx,_ = pick_point(lat=lat,lon=lon,run=runlist[0],
-                           plot_map=False,savepath=savepath)
-        idx = [idx]
-    elif lat != -9999:
+    if lat != -9999: #placename != '' or 
+        #if lat == -9999: #if lon == -9999:
+        #   lat = region_coordbounds[region_name.index(placename)][1,1]
+        #   lon = region_coordbounds[region_name.index(placename)][0,0]
         idx,_ = pick_point(lat=lat,lon=lon,run=runlist[0],
                            plot_map=False,savepath=savepath)
         idx = [idx]
@@ -325,34 +324,15 @@ def extract_tseries(runlist,varlist,year_range,
     for j,run in enumerate(runlist):
         for i,var in enumerate(varlist):
             header = run+'_'+var
-            if zeval != -9999:
-                header = header + '_z' + str(int(zeval))
+            if zeval[i] != -9999:
+                header = header + '_z' + str(int(zeval[i]))
             if ztop_pyc[i]:
                 header = header + '_abovepyc'
             if zbottom_pyc[i]:
                 header = header + '_belowpyc'
             colheadings.append(header)
-    
-    zidx = np.zeros((len(idx),2),dtype=int)
-    for i in range(0,len(idx)):
-        if zrange[1] != -9999:
-            if zab:
-                zeval = np.add(zmid[0][-1],zeval)
-            zidx[i,:] = ([np.argmin(np.abs(np.subtract(zmid,zeval[0]))),
-                     np.argmin(np.abs(np.subtract(zmid,zeval[1])))])
-            if zidx[i,1] == zidx[i,0]:
-                zidx[i,1] += 1
-            if zidx[i,1] < zidx[i,0]:
-                zidx[i,:] = [zidx[i,1],zidx[i,0]] 
-        elif zeval != -9999:
-            if zab:
-                zeval = np.add(zmid[0][-1],zeval)
-            else:
-                zeval = -1.*zeval
-            zidx[i,0] = np.argmin(np.abs(np.subtract(zmid[0],zeval)))
-    
+
     for yr in years:
-        print(yr)
         for mo in months:
             times[t] = yr+(mo-1.0)/12.0
        
@@ -365,32 +345,23 @@ def extract_tseries(runlist,varlist,year_range,
                    data[j,:,t] = math.nan
                    continue
                 f = netCDF4.Dataset(input_filename, 'r')
-                if any(ztop_pyc) or any(zbottom_pyc):
-                    z_idx = np.zeros((len(idx)),dtype=int)
-                    zcol_mean = np.zeros((len(idx)))# make idx a list
-                    T = f.variables[varname[vartitle.index('T')]][0,idx,:]
-                    S = f.variables[varname[vartitle.index('S')]][0,idx,:]
-                    h = fmesh.variables['layerThickness'][0,idx,:]
-                    for idx_i,_ in enumerate(idx):
-                        zpyc = z_pycnocline(zmid[idx_i,:kmax[idx_i]],
-                                            T   [idx_i,:kmax[idx_i]],
-                                            S   [idx_i,:kmax[idx_i]],
-                                            zmin = -500.,cellidx=idx[idx_i])
-                        z_idx[idx_i] = int(np.argmin(np.abs(np.subtract(zmid[idx_i,:kmax[idx_i]],zpyc))))
                 for i,var in enumerate(varlist):
                     if var in surfvar:
-                        if operation == 'mean':
-                           data[j,i,t] = np.mean(f.variables[varname[vartitle.index(var)]][0,idx])
-                        elif operation == 'area_sum':
-                           data[j,i,t] = np.sum(np.multiply(f.variables[varname[vartitle.index(var)]][0,idx],
-                                                            fmesh.variables['areaCell'][idx]))
-                        else:
-                           data[j,i,t] = f.variables[varname[vartitle.index(var)]][0,idx]
+                        data[j,i,t] = f.variables[varname[vartitle.index(var)]][0,idx]
                     else:
                         if ztop_pyc[i] or zbottom_pyc[i]:
+                            zcol_mean = np.zeros((len(idx)))# make idx a list
+                            T = f.variables[varname[vartitle.index('T')]][0,idx,:]
+                            S = f.variables[varname[vartitle.index('S')]][0,idx,:]
+                            h = fmesh.variables['layerThickness'][0,idx,:]
                             var = f.variables[varname[vartitle.index(var)]][0,idx,:]
                             for idx_i,_ in enumerate(idx):
-                                if np.isnan(z_idx[idx_i]) or z_idx[idx_i] == 0 or z_idx[idx_i] == kmax[idx_i]:
+                                zpyc = z_pycnocline(zmid[idx_i,:kmax[idx_i]],
+                                                    T   [idx_i,:kmax[idx_i]],
+                                                    S   [idx_i,:kmax[idx_i]],
+                                                    zmin = -500.,cellidx=idx[idx_i])
+                                z_idx = np.argmin(np.abs(np.subtract(zmid[idx_i,:kmax[idx_i]],zpyc)))
+                                if np.isnan(z_idx) or z_idx == 0 or z_idx == kmax[idx_i]:
                                     zcol_mean[idx_i] = -9999
                                 else:
                                     if ztop_pyc[i]:
@@ -399,24 +370,37 @@ def extract_tseries(runlist,varlist,year_range,
                                         #            np.argmin(np.abs(np.subtract(zmid[idx_i,:kmax[idx_i]],zrange[0]))))
                                         zcol_mean[idx_i] = np.divide(
                                                              np.sum(np.multiply(
-                                                               h[idx_i,idx_top:z_idx[idx_i]],
-                                                               var[idx_i,idx_top:z_idx[idx_i]])),
-                                                               np.sum(h[idx_i,idx_top:z_idx[idx_i]]))
+                                                               h[idx_i,idx_top:z_idx],
+                                                               var[idx_i,idx_top:z_idx])),
+                                                               np.sum(h[idx_i,idx_top:z_idx]))
                                     elif zbottom_pyc[i]:
                                         idx_bottom = kmax[idx_i]
                                         #idx_bottom = np.minimum(kmax[idx_i],
                                         #               np.argmin(np.abs(np.subtract(zmid[idx_i,:kmax[idx_i]],zrange[1]))))
                                         zcol_mean[idx_i] = np.divide(
                                                              np.sum(np.multiply(
-                                                               h       [idx_i,z_idx[idx_i]:idx_bottom],
-                                                               var     [idx_i,z_idx[idx_i]:idx_bottom])),
-                                                               np.sum(h[idx_i,z_idx[idx_i]:idx_bottom]))
+                                                               h       [idx_i,z_idx:idx_bottom],
+                                                               var     [idx_i,z_idx:idx_bottom])),
+                                                               np.sum(h[idx_i,z_idx:idx_bottom]))
                             data[j,i,t] = np.nanmean(zcol_mean[zcol_mean != -9999])
                         elif zrange[1] != -9999:
+                            if zab:
+                                zeval = np.add(zmid[0][-1],zrange)
+                            else:
+                                zeval = zrange
+                            zidx = ([np.argmin(np.abs(np.subtract(zmid,zeval[0]))),
+                                     np.argmin(np.abs(np.subtract(zmid,zeval[1])))])
+                            if zidx[1] == zidx[0]:
+                                zidx[1] += 1
+                            if zidx[1] < zidx[0]:
+                                zidx = [zidx[1],zidx[0]] 
                             data[j,i,t] = np.mean(f.variables[varname[vartitle.index(var)]]
-                                                             [0,idx,zidx[:,0]:zidx[:,1]]       )
-                        elif zeval != -9999:
-                            data[j,i,t] = f.variables[varname[vartitle.index(var)]][0,idx,zidx[:,0]]
+                                                             [0,idx,zidx[0]:zidx[1]]       )
+                        elif zeval[i] != -9999:
+                            if zab:
+                                zeval[i] = np.add(zmid[0][-1],zeval[i])
+                            zidx = np.argmin(np.abs(np.subtract(zmid,zeval[i])))
+                            data[j,i,t] = f.variables[varname[vartitle.index(var)]][0,idx,zidx]
                 f.close()
 
             t += 1
@@ -445,16 +429,13 @@ def butter_lowpass_filter(data, cutoff, fs, order):
 
 def tseries1(runlist,varlist,year_range,
              placename = '',lat=-9999,lon=-9999,
-             operation = 'mean', apply_filter = False, cutoff = 0, #region = '',
-             varlim = [-9999,-9999],
-             zrange=[-9999,-9999],zab=False,zeval=-9999, 
-             velocity_vector=False, tav = 0,
+             apply_filter = False, cutoff = 0, #region = '',
+             varlim = [-9999,-9999],zrange=[20,-9999],zab=False,zeval=[-9999], 
+             velocity_vector=False,
              ztop_pyc = [False], zbottom_pyc = [False], diff_pyc = [False],
-             reference_run = '', ratio_barotropic = [False], 
-             input_filename = '', input_filename2 = '', var2 = '',
+             reference_run = '', ratio_barotropic = [False], input_filename = '', 
              shade_season = False, year_overlay=False,
              print_to_file = True, create_figure = False,
-             show_obs = False, obs = [-9999,9999],
              overwrite=True, savepath=savepath_nersc): 
 
     linestyle = ['-' for i in runlist]
@@ -467,14 +448,12 @@ def tseries1(runlist,varlist,year_range,
         nrow += -2
     ncol=1
     
+    if len(zeval) < len(varlist):
+        zeval = [zeval[0] for i in varlist]
     if len(ztop_pyc)<len(varlist):
         ztop_pyc = [False for i in varlist]
     if len(zbottom_pyc)<len(varlist):
         zbottom_pyc = [False for i in varlist]
-    if len(diff_pyc)<len(varlist):
-        diff_pyc = [False for i in varlist]
-    if len(ratio_barotropic)<len(varlist):
-        ratio_barotropic = [False for i in varlist]
 
     if lat != -9999: 
         idx,placename = pick_point(run=runlist[0],lat=lat,lon=lon)
@@ -484,73 +463,56 @@ def tseries1(runlist,varlist,year_range,
     years = np.arange(year_range[0],year_range[1],1)
     t_season.append(1)
     for i,var in enumerate(varlist):
-        filename = ('_'.join(runlist) + '_' + 
-                    varlist[i] + '_' + placename)
-                #''.join(varlist) + '_' + placename)
-    if zeval != -9999:
-        filename = filename + '_z{0:03f}'.format(int(zeval)) + m 
-    if zrange[1] != -9999:
-        filename = filename + '_z{0:03d}-{1:03d}'.format(zrange[0], zrange[1]) + m 
-    if ztop_pyc[i]:
-        filename = filename + '_abovepyc'
-    if zbottom_pyc[i]:
-        filename = filename + '_belowpyc'
-    filename = filename + '_t{0:03d}-{1:03d}'.format(year_range[0], year_range[1])
-    if input_filename == '':
-        input_filename = filename
-    print(filename)
+        print(ztop_pyc[i])
+        if input_filename == '':
+            filename = ('_'.join(runlist) + '_' + 
+                        varlist[i] + '_' + placename)
+                        #''.join(varlist) + '_' + placename)
+            if zeval[0] != -9999:
+                filename = filename + '_z{0:03d}_z{1:03d}'.format(zeval[0], zeval[1]) + m 
+            if zrange[1] != -9999:
+                filename = filename + '_z{0:03d}-{1:03d}'.format(zrange[0], zrange[1]) + m 
+            if ztop_pyc[i]:
+                filename = filename + '_abovepyc'
+            if zbottom_pyc[i]:
+                filename = filename + '_belowpyc'
+            filename = filename + '_t{0:03d}-{1:03d}'.format(year_range[0], year_range[1])
+        else:
+            filename = input_filename
+        print(filename)
 
-    if (not os.path.exists(savepath + input_filename + '.txt') or overwrite) and print_to_file:
-        print('extracting time series')
-        extract_tseries(runlist,varlist,year_range,
-                        placename = placename, lat=lat,lon=lon,
-                        operation = operation,
-                        ztop_pyc = ztop_pyc, zbottom_pyc = zbottom_pyc,
-                        zrange=zrange,zab=zab, zeval=zeval,
-                        output_filename = filename)
-    
-    if not create_figure:
-        return
-    df = pandas.read_csv(savepath + input_filename + '.txt')
-    if input_filename2 != '':
-        df2 = pandas.read_csv(savepath + input_filename2 + '.txt')
-    for i,var in enumerate(varlist):
+        if not os.path.exists(savepath + filename + '.txt'):
+            print('extracting time series')
+            extract_tseries(runlist,varlist,year_range,
+                            placename = placename,lat=lat,lon=lon,
+                            ztop_pyc = ztop_pyc, zbottom_pyc = zbottom_pyc,
+                            zrange=zrange,zab=zab, zeval=zeval,
+                            output_filename = filename)#region=region, 
+        
+        if not create_figure:
+            continue
+        df = pandas.read_csv(savepath + filename + '.txt')
         if len(varlist) == 1:
             ax = axvar
         else:
             ax = axvar[i]
         if i == nrow-1:
-            ax.set(xlabel='Year')
-        if show_obs:
-            #for obs_m in obs:
-                #ax.plot([np.min(times),np.max(times)],[obs_m,obs_m],'--k',lineWidth=lw1)
-            ax.fill([year_range[0],year_range[0],year_range[1],year_range[1]],
-                    [obs[0],obs[1],obs[1],obs[0]],facecolor='k',
-                    alpha=0.25,linewidth=None)
-        yaxislabel=varlabel[vartitle.index(var)]+', '+region_title[region_name.index(placename)]
+            ax.set(xlabel=r'Year')
         ymin = 9999.
         ymax = -9999.
         for j,run in enumerate(runlist):
             times = df['decyear'][:]
+            print(run)
             header = run+'_'+var
-            if zeval != -9999:
-                header = header + '_z' + str(int(zeval))
+            if zeval[i] != -9999:
+                header = header + '_z' + str(int(zeval[i]))
             if ztop_pyc[i]:
                 header = header + '_abovepyc'
-                if reference_run != '':
-                    yaxislabel = r'$\sigma_{ASW} \: - \: \sigma_{ASW,CTRL} \: (kg \: m^{-3})$'
-                else:
-                    yaxislabel = r'$\sigma_{ASW} \: (kg \: m^{-3})$'
+                yaxislabel = r'$\rho_{ASW} \: - \: \rho_{ASW,CTRL} \: (kg \: m^{-3})$'
             if zbottom_pyc[i]:
                 header = header + '_belowpyc'
-                if reference_run != '':
-                    yaxislabel = r'$\rho_{DSW} \: - \: \rho_{DSW,CTRL} \: (kg \: m^{-3})$'
-                else:
-                    yaxislabel = r'$\rho_{DSW} \: (kg \: m^{-3})$'
+                yaxislabel = r'$\rho_{DSW} \: - \: \rho_{DSW,CTRL} \: (kg \: m^{-3})$'
             data = df[header][:]
-            if input_filename2 != '':
-                data2 = df2[run+'_'+var2][:]
-                yaxislabel = r'$\rho(trough) - \rho(WDW) \: (kg \: m^{-3})$'
             if diff_pyc[i]:
                 data2 = df[run+'_'+var+'_belowpyc'][:]
                 data = np.subtract(data2,data)
@@ -560,6 +522,7 @@ def tseries1(runlist,varlist,year_range,
             elif ratio_barotropic[i]:
                 data2 = df[run+'_F_barotropic'][:]
                 data = np.divide(data,np.abs(data2))
+                print(np.nanmean(data))
                 yaxislabel = r'Baroclinic flux:Barotropic flux'
             #else:
             #    yaxislabel = varlabel[vartitle.index(var)]
@@ -569,18 +532,14 @@ def tseries1(runlist,varlist,year_range,
                 times = times[~np.isnan(data)]
                 data = data[~np.isnan(data)]
                 data = butter_lowpass_filter(data, cutoff, fs, order)
-            if tav > 0:
-                tav1 = int(tav/2)
-                data[0:tav1] = math.nan
-                for t in range(tav1,len(times)-tav1):
-                   data[t] = np.nanmean(data[t-tav1:t+tav1])
-                data[len(times)-tav1:] = math.nan
-                
             if run == reference_run:
                 data_ref = data
                 linestyle[j] = '--'
             if reference_run != '':
                 data = np.subtract(data,data_ref) 
+            #if varlim[0] == -9999:
+            #    varlim[0] = np.minimum(varlim[0],np.min(data))
+            #    varlim[1] = np.maximum(varlim[1],np.max(data))
             if year_overlay:
                 for yr in years:
                     idx_time = (times>=yr) * (times < yr+1)
@@ -588,27 +547,12 @@ def tseries1(runlist,varlist,year_range,
                                  '-', color = run_color[runname.index(run)], 
                                  alpha = 0.5)
             else: 
-                if input_filename2 != '':
-                    pc = ax.plot(times,np.subtract(data2,data),
-                                 '-', 
-                                 label = runtitle[runname.index(run)],
-                                 linewidth = lw1,
-                                 color = run_color[runname.index(run)])
-                    #pc = ax.plot(times,data2,
-                    #             ':', 
-                    #             label = runtitle[runname.index(run)],
-                    #             linewidth = lw1,
-                    #             color = run_color[runname.index(run)])
-                else:
-                    pc = ax.plot(times,data,
+                pc = ax.plot(times,data,
+                             '-', 
                              label = runtitle[runname.index(run)],
                              linewidth = lw1,
                              linestyle = linestyle[j],
                              color = run_color[runname.index(run)])
-            yl = ax.get_ylim()
-            ax.plot([run_tipping_year[runname.index(run)], run_tipping_year[runname.index(run)]], 
-                     [-100, 2000], ':', color=run_color[runname.index(run)],lineWidth=lw1)
-            ax.set_ylim(yl)
         if shade_season:
             if year_overlay:
                 for s,_ in enumerate(season): 
@@ -630,22 +574,26 @@ def tseries1(runlist,varlist,year_range,
             ax.set_ylim([0,1])
         ax.set_xlim((year_range)) 
         ax.set(ylabel=yaxislabel)
-    
-        plt.legend(loc=legloc,bbox_to_anchor=bboxanchor)
-        
-    if tav > 0:
-        filename = filename + '_tav{:1.03f}'.format(int(tav))
-    if apply_filter:
-        filename = filename + '_filter{:1.03f}'.format(int(cutoff))
-    if year_overlay:
-        filename = filename + '_yearoverlay'
+    plt.legend(loc=legloc,bbox_to_anchor=bboxanchor)
+    filename = ('_'.join(runlist) + '_' + 
+                ''.join(varlist) + '_' + placename)
+    if zeval[0] != -9999:
+        filename = filename + '_z{0:03d}_z{1:03d}'.format(zeval[0], zeval[1]) + m 
+    if zrange[1] != -9999:
+        filename = filename + '_z{0:03d}-{1:03d}'.format(zrange[0], zrange[1]) + m 
+    if any(ztop_pyc):
+        filename = filename + '_abovepyc'
+    if any(zbottom_pyc):
+        filename = filename + '_belowpyc'
+    if any(ratio_barotropic):
+        filename = filename + '_ratio'
     if reference_run != '':
-        filename = filename + '_ref' + reference_run
-    if input_filename2 != '':
-        filename = filename + '_diff' + var2
-    if show_obs:
-        filename = filename + '_obs'
-    print('save tseries figure', savepath + '/' + filename)
+        filename = filename + '_ref'+reference_run
+    filename = filename + '_t{0:03d}-{1:03d}'.format(year_range[0], year_range[1])
+    
+    if apply_filter:
+        filename = filename + '_filter{:1.03f}'.format(cutoff)
+    print('save tseries figure', filename)
     plt.savefig(savepath + '/' + filename + '.png',bbox_inches='tight')
     plt.close(fig)
 
@@ -711,10 +659,8 @@ def hovmoller(runlist,year_range,
     elif option == 'transect':
         locname = transect_id
     
-    filename = ''
-    for i,run in enumerate(runlist):
-       filename = filename + run + '_' + varlist[i] + '_'
-    filename = ( filename + 'hovmoller_' +
+    filename = ( runlist[0] + '_' + varlist[0] + '_' + 
+                 runlist[1] + '_' + varlist[1] + '_hovmoller_' +
                  locname + '_' + str(year_range[0]) + '-' + str(year_range[1]) )
     print(filename)
 
@@ -746,11 +692,11 @@ def hovmoller(runlist,year_range,
            
                 datestr = '{0:04d}-{1:02d}'.format(yr, mo)
                 for i,var in enumerate(varlist):
-                    mpas_filename = (
+                    input_filename = (
                         '{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(
                                 runpath[runname.index(runlist[i])]) 
                                 + datestr + '-01.nc')
-                    f = netCDF4.Dataset(mpas_filename, 'r')
+                    f = netCDF4.Dataset(input_filename, 'r')
                     data[i,1:,t] = (f.variables[varname[vartitle.index(var)]]
                                     [0,idx,:nz-1])
                     if plot_pycnocline:
@@ -793,8 +739,8 @@ def hovmoller(runlist,year_range,
         z = zbottom
         nz = len(z)
         data = np.zeros((len(varlist),nz,len(times)))
-        #for i in range(start_time_idx,end_time_idx):
-        #    data[0,:,i] = df['u_barotropic_sum'][i]
+        for i in range(start_time_idx,end_time_idx):
+            data[0,:,i] = df['u_barotropic_sum'][i]
         for i,_ in enumerate(z):
             data[1,i,:-1] = df[zcol[i][:]][:]
         locname = transect_id
@@ -885,8 +831,6 @@ def profile(runlist,varlist,year_range,
     zmid = zmid[0,:]
 
     datestr=str(year_range[0]) + '-' + str(year_range[1])
-    if mo != 0:
-        datestr= datestr+'_mo'+str(mo)
     filename = ('_'.join(runlist) + '_' + 
                 ''.join(varlist) + '_profiles_' + placename +
                 '_' + datestr )
@@ -915,8 +859,7 @@ def profile(runlist,varlist,year_range,
     times = np.zeros((nt,))
     colors = [ cmx.jet(x) for x in np.linspace(0.0, 1.0, 13)]
     
-    lineStyle = ['-' for i in runlist]
-    #lineStyle = ['-','--',':','-.']
+    lineStyle = ['-','--',':','-.']
     
     nrow=1
     ncol=len(varlist)
@@ -932,16 +875,12 @@ def profile(runlist,varlist,year_range,
         #   lon = region_coordbounds[region_name.index(placename)][0,0]
                 datestr = '{0:04d}-{1:02d}'.format(yr, mo)
                 input_filename = '{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(runpath[runname.index(run)]) + datestr + '-01.nc'
-                if not os.path.exists(input_filename):
-                   continue
                 f = netCDF4.Dataset(input_filename, 'r')
                 for k,var in enumerate(varlist):
                 
                    data     = f.variables[varname[vartitle.index(var)]]
                    axvar[k].plot(data[0,idx,:], zmid, 
-                            color = run_color[runname.index(run)],
-                            #color=c,
-                            linestyle=lineStyle[r])
+                                 color=c,linestyle=lineStyle[r])
                    
                    axvar[k].set(xlabel=varlabel[vartitle.index(var)])
                 
@@ -1051,7 +990,13 @@ def fluxgate(transect_id, yrrange = [50,51], morange = [1,13],
         flag='a+'
 
     col_headings = ['year','month','decyear']
-    col_headings_z = ['year','month','decyear']
+    #if runcmp:
+    #    wr.writerow(['year','month','decyear',
+    #             run+'_flux_pos',run+'_flux_neg',run+'_flux_total',
+    #             runcmpname+'_flux_pos',runcmpname+'_flux_neg',runcmpname+'_flux_total'])
+    #else:
+    #    wr.writerow(['year','month','decyear',
+    #             run+'_flux_pos',run+'_flux_neg',run+'_flux_total'])
    
     if mode == 'pos-neg':
         output_filename = run_incr[0]+'_transect_flux_'+transect_id+'_'+str(yrrange[0])+'-'+str(yrrange[1])
@@ -1061,26 +1006,20 @@ def fluxgate(transect_id, yrrange = [50,51], morange = [1,13],
             col_headings.append(run+'_flux_neg')
             col_headings.append(run+'_flux_total')
     elif mode == 'barotropic-baroclinic':
-        output_filename = '_transect_u_'+transect_id+'_'+str(yrrange[0])+'-'+str(yrrange[1])
+        output_filename = run_incr[0]+'_transect_u_'+transect_id+'_'+str(yrrange[0])+'-'+str(yrrange[1])
         for run in run_incr:
             col_headings.append(run+'_F_barotropic')
             col_headings.append(run+'_F_baroclinic_pos')
             col_headings.append(run+'_u_barotropic_sum')
             col_headings.append(run+'_u_baroclinic_pos')
             col_headings.append(run+'_F_baroclinic_err')
-        col_headings_z.append(zu[0]+zuh[0])
-        for i in zu:
-            col_headings_z.append(i) 
-    print(savepath+run_incr[0]+output_filename+'.txt') 
-    table_file = open(savepath+run_incr[0]+output_filename+'.txt',flag)
+        #col_headings.append(zu[0]+zuh[0])
+        #for i in zu:
+        #    col_headings.append(i) 
+    print(savepath+output_filename+'.txt') 
+    table_file = open(savepath+output_filename+'.txt',flag)
     wr = csv.writer(table_file,dialect='excel')
     wr.writerow(col_headings)
-    for run in run_incr:
-        print(savepath+run+output_filename+'_z.txt') 
-        table_file_z = open(savepath+run+output_filename+'_z.txt',flag)
-        wrz = csv.writer(table_file_z,dialect='excel')
-        wrz.writerow(col_headings_z)
-        table_file_z.close()
     
     for yr in range(yrrange[0],yrrange[1]):
         for mo in range(morange[0],morange[1]):
@@ -1088,7 +1027,6 @@ def fluxgate(transect_id, yrrange = [50,51], morange = [1,13],
             times = (yr+(mo-1.0)/12.0)
             datestr = '{0:04d}-{1:02d}'.format(yr, mo)
             row_entries = [yr,mo,times]
-            row_entries_z = [yr,mo,times]
             
             for run in run_incr:
                 filename = ('{0}/mpaso.hist.am.timeSeriesStatsMonthly.'.format(
@@ -1175,13 +1113,9 @@ def fluxgate(transect_id, yrrange = [50,51], morange = [1,13],
                     row_entries.append(u_barotropic_sum)
                     row_entries.append(u_baroclinic_sum)
                     row_entries.append(abs(np.sum(F_baroclinic[i,:])))
-                    for i in u_baroclinic_zsum:
-                        row_entries_z.append(i)
+                    #for i in u_baroclinic_zsum:
+                    #    row_entries.append(i)
             wr.writerow(row_entries)
-            table_file_z = open(savepath+run+output_filename+'_z.txt',flag)
-            wrz = csv.writer(table_file_z,dialect='excel')
-            wrz.writerow(row_entries_z)
-            table_file_z.close()
             # in a separate text file, write 1st row depths, subsequent rows per time
             
             if plot_transect: 
@@ -1752,7 +1686,6 @@ def plot_zpyc_corr(filename_zpyc,filename_T,run=['ISMF'],
 def plot_zpyc_t(filename,run = ['ISMF'], tlim=[9999.,9999.],
                 placename = [''], plot_T = False, plot_sd = False,
                 plot_difference = False,cutoff = 0., 
-                show_obs = False, obs = [-9999,9999],
                 ls = ['-','--',':-'], savepath=savepath_nersc):
 
     plot_filename = filename[0]
@@ -1765,8 +1698,6 @@ def plot_zpyc_t(filename,run = ['ISMF'], tlim=[9999.,9999.],
     plot_filename = plot_filename + '_' + str(tlim[0]) + '-' + str(tlim[1])
     if cutoff != 0.:
         plot_filename = plot_filename + '_filter{:1.03f}'.format(cutoff)
-    if show_obs:
-        plot_filename = plot_filename + '_obs'
     print(plot_filename)
 
     fig = plt.figure()
@@ -1813,9 +1744,6 @@ def plot_zpyc_t(filename,run = ['ISMF'], tlim=[9999.,9999.],
             ax.plot(t,np.abs(dmean[:,k]),label = runtitle[runname.index(run_incr)],
                     color=run_color[runname.index(run_incr)],linewidth = lw1)
         ax.set_ylabel(r'$\Delta z_{pyc}$ (m)')
-    if show_obs:
-        for obs_m in obs:
-            ax.plot([np.min(t),np.max(t)],[obs_m,obs_m],'--k',lineWidth=lw1)
     
     elif plot_T:
         filename_T = 'ISMF_TS_20mab_76S30W_70-101'

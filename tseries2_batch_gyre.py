@@ -16,8 +16,8 @@ import weddell_mod as wed
 
 run_incr = ['ISMF','ISMF-noEAIS','ISMF-3dGM','ISMF-noDIB']
 #placename = 'wed_pyc_Ryan_shallow'
-#placename = 'gyre_interior'
-placename = 'wed_pyc_Ryan_shelf'
+placename = 'gyre_interior'
+#placename = 'wed_pyc_Ryan_shelf'
 #var_incr = ['taux','tauy']
 #var_incr = ['T','S','rho','u','v']
 #var_incr = ['T','S']
@@ -27,7 +27,7 @@ rholim = [1027.2,1027.9]
 lat = -70
 lon = 340
 #filename = 'ISMF_ISMF-noEAIS_rho_wed_pyc_Ryan_shallow_abovepyc_t070-101'
-year_range = [10,180]
+year_range = [50,100]
 
 #wed.tseries1(run_incr,['mean'],year_range=year_range,
 #             placename = 'wed_pyc_Ryan', 

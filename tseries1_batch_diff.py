@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import scipy.signal
 from matplotlib import cm
 from math import pi
-import weddell_mod as wed
+import weddell_mod2 as wed
 
 run_incr = ['ISMF','ISMF-noEAIS','ISMF-3dGM','ISMF-noDIB']
 #placename = 'wed_pyc_Ryan_shallow'
@@ -22,11 +22,13 @@ placename = 'wed_pyc_Ryan_shelf'
 #var_incr = ['T','S','rho','u','v']
 #var_incr = ['T','S']
 #var_incr = ['unormal']
-var_incr = ['rho','rho']
+var_incr = ['rho']
+#var_incr = ['rho','rho']
 rholim = [1027.2,1027.9]
 lat = -70
 lon = 340
-#filename = 'ISMF_ISMF-noEAIS_rho_wed_pyc_Ryan_shallow_abovepyc_t070-101'
+#filename = 'ISMF_ISMF-noEAIS_ISMF-3dGM_ISMF-noDIB_rho_gyre_interior_abovepyc_t010-180'
+filename = 'ISMF_ISMF-noEAIS_ISMF-3dGM_ISMF-noDIB_rho_'+placename+'_abovepyc_t010-180'
 year_range = [10,180]
 
 #wed.tseries1(run_incr,['mean'],year_range=year_range,
@@ -54,12 +56,13 @@ year_range = [10,180]
 #             year_overlay=False,overwrite=True)
 wed.tseries1(run_incr,var_incr,year_range=year_range,
              placename = placename,
-             print_to_file=True,create_figure=False,
-             varlim = rholim,
-             #input_filename = filename,
+             print_to_file=False,create_figure=True,
+             input_filename = filename,
              #apply_filter = True, cutoff = 1/4,
-             ztop_pyc = [True,False], zbottom_pyc = [False,True],
-             year_overlay=False,overwrite=True)
+             ztop_pyc = [True], zbottom_pyc = [False], 
+             #ztop_pyc = [False], zbottom_pyc = [True], 
+             #diff_pyc = [True],
+             reference_run='ISMF', year_overlay=False,overwrite=False)
              #zeval = [-100,-400],
              #zrange = [-100,-500],
              #lat=lat, lon=lon,

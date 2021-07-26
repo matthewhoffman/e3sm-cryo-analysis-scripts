@@ -18,13 +18,15 @@ import cmocean
 from math import pi
 import weddell_mod as wed
 
-run_incr = ['ISMF','ISMF-noEAIS']
-lat = -70
-lon = 360-20
+run_incr = ['ISMF','ISMF-noEAIS','ISMF-3dGM','ISMF-noDIB']
+#lat = -70
+#lon = 360-20
 year_range = [70,70]
 varlist = ['T','S','rho']
 
-wed.profile(run_incr,varlist,year_range,lat,lon)
+for i in range(20,180,10):
+    wed.profile(run_incr,varlist,[i,i],mo=8,placename='N31W',maxDepth=-800)
+    wed.profile(run_incr,varlist,[i,i],mo=2,placename='N31W',maxDepth=-800)
 #    wed.profile(['u','v'],'ISMF',yr,yr,latS,lonW,runcmp=True,runcmpname='ISMF-3dGM')
 #    for i,l in enumerate(latS):
 #        wed.profile(['T','S','rho'],'ISMF',yr,yr,latS[i],lonW[i],runcmp=True)
