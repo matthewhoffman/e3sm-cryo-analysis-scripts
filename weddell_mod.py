@@ -269,7 +269,7 @@ def z_pycnocline(z,T,S,diags=False,cellidx=0,zmin=-9999,
 def extract_tseries(runlist,varlist,year_range,
                     placename = '',
                     lat=-9999,lon=-9999,
-                    zrange=[20,-9999],zeval = -9999,zab=False,
+                    zrange=[20,-9999],zeval = -9999, zab=False,
                     ztop_pyc = [False],zbottom_pyc = [False],
                     operation = 'mean',
                     overwrite=True, output_filename = '',
@@ -299,6 +299,7 @@ def extract_tseries(runlist,varlist,year_range,
     times = np.zeros((nt,))
     
     fmesh = netCDF4.Dataset(meshpath[runname.index(runlist[0])])
+    data = np.zeros((len(runlist),len(varlist),nt)) 
     if placename in region_is_point:
         lat = region_coordbounds[region_name.index(placename)][1,1]
         lon = region_coordbounds[region_name.index(placename)][0,0]
@@ -312,7 +313,6 @@ def extract_tseries(runlist,varlist,year_range,
     else:
         idx = pick_from_region(region=placename,run=runlist[0],plot_map=False)
 
-    data = np.zeros((len(runlist),len(varlist),nt)) 
     kmax     = fmesh.variables['maxLevelCell'][idx]
     zmid,_,_ = zmidfrommesh(fmesh,cellidx=idx)
     
@@ -362,6 +362,7 @@ def extract_tseries(runlist,varlist,year_range,
                             runpath[runname.index(run)]) 
                            + datestr + '-01.nc')
                 if not os.path.exists(input_filename):
+                   print('Output file for {} does not exist'.format(run))
                    data[j,:,t] = math.nan
                    continue
                 f = netCDF4.Dataset(input_filename, 'r')
@@ -444,21 +445,21 @@ def butter_lowpass_filter(data, cutoff, fs, order):
     return y
 
 def tseries1(runlist,varlist,year_range,
-             placename = '',lat=-9999,lon=-9999,
+             placename = [''],lat=-9999,lon=-9999,
              operation = 'mean', apply_filter = False, cutoff = 0, #region = '',
-             varlim = [-9999,-9999],
-             zrange=[-9999,-9999],zab=False,zeval=-9999, 
+             varlim = True,
+             zrange=[-9999,-9999],zab=[False],zeval=[-9999], 
              velocity_vector=False, tav = 0,
              ztop_pyc = [False], zbottom_pyc = [False], diff_pyc = [False],
              reference_run = '', ratio_barotropic = [False], 
-             input_filename = '', input_filename2 = '', var2 = '',
+             input_filename = [''], input_filename2 = '', var2 = '',
              shade_season = False, year_overlay=False,
              print_to_file = True, create_figure = True,
              show_obs = False, obs = [-9999,9999],
              overwrite=False, savepath=savepath_nersc): 
 
     linestyle = ['-' for i in runlist]
-    if zab:
+    if zab[0]:
         m = 'mab'
     else:
         m = 'm'
@@ -467,6 +468,10 @@ def tseries1(runlist,varlist,year_range,
         nrow += -2
     ncol=1
     
+    if len(zab)<len(varlist):
+        zab = [zab[0] for i in varlist]
+    if len(zeval)<len(varlist):
+        zeval = [zeval[0] for i in varlist]
     if len(ztop_pyc)<len(varlist):
         ztop_pyc = [False for i in varlist]
     if len(zbottom_pyc)<len(varlist):
@@ -476,43 +481,41 @@ def tseries1(runlist,varlist,year_range,
     if len(ratio_barotropic)<len(varlist):
         ratio_barotropic = [False for i in varlist]
 
-    if lat != -9999: 
-        idx,placename = pick_point(run=runlist[0],lat=lat,lon=lon)
-    
+    #if lat != -9999: 
+    #    idx,placename = pick_point(run=runlist[0],lat=lat,lon=lon)
 
     fig,axvar = plt.subplots(nrow,ncol,sharex=True)
     years = np.arange(year_range[0],year_range[1],1)
     t_season.append(1)
-    for i,var in enumerate(varlist):
-        filename = ('_'.join(runlist) + '_' + 
-                    varlist[i] + '_' + placename)
-                #''.join(varlist) + '_' + placename)
-    if zeval != -9999:
-        filename = filename + '_z{0:03f}'.format(int(zeval)) + m 
+    filename = ('_'.join(runlist) + '_' + 
+                '_'.join(varlist))
+    if placename[0] != '':
+        filename = filename + '_' + placename[0]
+    if zeval[0] != -9999:
+        filename = filename + '_z{0:03f}'.format(int(zeval[0])) + m 
     if zrange[1] != -9999:
         filename = filename + '_z{0:03d}-{1:03d}'.format(zrange[0], zrange[1]) + m 
-    if ztop_pyc[i]:
-        filename = filename + '_abovepyc'
-    if zbottom_pyc[i]:
-        filename = filename + '_belowpyc'
+    for i,var in enumerate(varlist):
+        if ztop_pyc[i]:
+            filename = filename + '_abovepyc'
+        if zbottom_pyc[i]:
+            filename = filename + '_belowpyc'
     filename = filename + '_t{0:03d}-{1:03d}'.format(year_range[0], year_range[1])
-    if input_filename == '':
-        input_filename = filename
-    print(filename)
-    print(savepath+input_filename)
+    if input_filename[0] == '' and not print_to_file:
+        input_filename[0] = filename
 
-    if (not os.path.exists(savepath + input_filename + '.txt') or overwrite) and print_to_file:
+    if (not os.path.exists(savepath + input_filename[0] + '.txt') or overwrite) and print_to_file:
         print('extracting time series')
         extract_tseries(runlist,varlist,year_range,
-                        placename = placename, lat=lat,lon=lon,
+                        placename = placename[0], lat=lat,lon=lon,
                         operation = operation,
                         ztop_pyc = ztop_pyc, zbottom_pyc = zbottom_pyc,
-                        zrange=zrange,zab=zab, zeval=zeval,
+                        zrange=zrange,zab=zab[0], zeval=zeval[0],
                         savepath=savepath,output_filename = filename)
     
     if not create_figure:
         return
-    df = pandas.read_csv(savepath + input_filename + '.txt')
+    df = pandas.read_csv(savepath + input_filename[0] + '.txt')
     if input_filename2 != '':
         df2 = pandas.read_csv(savepath + input_filename2 + '.txt')
     for i,var in enumerate(varlist):
@@ -528,14 +531,17 @@ def tseries1(runlist,varlist,year_range,
             ax.fill([year_range[0],year_range[0],year_range[1],year_range[1]],
                     [obs[0],obs[1],obs[1],obs[0]],facecolor='k',
                     alpha=0.25,linewidth=None)
-        yaxislabel=varlabel[vartitle.index(var)]+', '+region_title[region_name.index(placename)]
+        yaxislabel=varlabel[vartitle.index(var)]+', '+region_title[region_name.index(placename[0])]
         ymin = 9999.
         ymax = -9999.
         for j,run in enumerate(runlist):
+            if len(input_filename) > 1:
+                df = pandas.read_csv(savepath + input_filename[j] + '.txt')
             times = df['decyear'][:]
-            header = run+'_'+var
+            print(run,np.min(times),np.max(times))
+            header = '_'+var
             if zeval != -9999:
-                header = header + '_z' + str(int(zeval))
+                header = header + '_z' + str(int(zeval[0]))
             if ztop_pyc[i]:
                 header = header + '_abovepyc'
                 if reference_run != '':
@@ -548,9 +554,10 @@ def tseries1(runlist,varlist,year_range,
                     yaxislabel = r'$\sigma_{DSW} \: - \: \sigma_{DSW,CTRL} \: (kg \: m^{-3})$'
                 else:
                     yaxislabel = r'$\sigma_{DSW} \: (kg \: m^{-3})$'
-            data = df[header][:]
+            data = df[run+header][:]
+            print(run,np.min(data),np.max(data))
             if input_filename2 != '':
-                data2 = df2[run+'_'+var2][:]
+                data2 = df2[var2+header][:]
                 yaxislabel = r'$\rho(trough) - \rho(WDW) \: (kg \: m^{-3})$'
             if diff_pyc[i]:
                 data2 = df[run+'_'+var+'_belowpyc'][:]
@@ -614,11 +621,17 @@ def tseries1(runlist,varlist,year_range,
                      ':', color=run_color[runname.index(run)],
                      lineWidth=lw1)
             ax.set_ylim(yl)
+        if varlim:
+            ylim = [varmin[vartitle.index(var)], varmax[vartitle.index(var)]]
+            ax.set_ylim(ylim)
+        if any(ratio_barotropic):
+            ylim = [0,1]
+            ax.set_ylim(ylim)
         if shade_season:
             if year_overlay:
                 for s,_ in enumerate(season): 
                     ax.fill([t_season[s],t_season[s],t_season[s+1],t_season[s+1]],
-                                  [varlim[0],varlim[1],varlim[1],varlim[0]],
+                                  [ylim[0],ylim[1],ylim[1],ylim[0]],
                                   facecolor=season_color[s], alpha=0.5, 
                                   linewidth='none')
             else:
@@ -626,13 +639,9 @@ def tseries1(runlist,varlist,year_range,
                     for s,_ in enumerate(season): 
                         ax.fill([yr + t_season[s],yr + t_season[s],
                                        yr + t_season[s+1], yr + t_season[s+1]],
-                                      [varlim[0],varlim[1],varlim[1],varlim[0]],
+                                      [ylim[0],ylim[1],ylim[1],ylim[0]],
                                       facecolor=season_color[s], alpha=0.5, 
                                       linewidth=0)
-        if varlim[0] != -9999:
-            ax.set_ylim((varlim))
-        if any(ratio_barotropic):
-            ax.set_ylim([0,1])
         ax.set_xlim((year_range)) 
         ax.set(ylabel=yaxislabel)
     
