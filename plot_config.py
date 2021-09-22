@@ -138,19 +138,23 @@ set_dpi = 100
 #           'modGM',
 #           'uniformIB',
 #           'B-ISMF']
-runtitle = ['CTRL',
-           'noEAmelt',
-           'modGM',
+runtitle = ['CTRL-bug',
+           'noEAmelt-bug',
+           'modGM-bug',
            'uniformIB',
            'B-ISMF-bug',
-           'B-ISMF']
-runname = ['ISMF',
-           'ISMF-noEAIS',
-           'ISMF-3dGM',
+           'B-ISMF',
+           'CTRL',
+           'modGM']
+runname = ['ISMF-bug',
+           'ISMF-noEAIS-bug',
+           'ISMF-3dGM-bug',
            'ISMF-noDIB',
            'B-ISMF-bug',
-           'B-ISMF']
-run_tipping_year = [98, nan, nan, 71, nan, nan]
+           'B-ISMF',
+           'ISMF',
+           'ISMF-3dGM']
+run_tipping_year = [98, nan, nan, 71, nan, nan, nan, nan]
 #run_color = ['cornflowerblue',
 #             'k',
 #             'darkorange']
@@ -159,7 +163,9 @@ run_color = ['k',
              '#d95f02',
              '#7570b3',
              'r',
-             'k']
+             'k',
+             'k',
+             '#d95f02']
 #run_color = ['b',
 #             '#1b9e77',
 #             '#d95f02',
@@ -182,12 +188,16 @@ runpath = [
            
            '/global/cscratch1/sd/hoffman2/e3sm_scratch/cori-knl/20191003.GMPAS-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist',
            '/global/cfs/cdirs/m3412/simulations/20190306.A_WCYCL1850-DIB-ISMF_CMIP6.ne30_oECv3wLI.edison/ocn/hist',
-           '/lcrc/group/acme/ac.dcomeau/acme_scratch/anvil/20210614.A_WCYCL1850-DIB-ISMF_CMIP6.ne30_oECv3wLI.DIBbugfix.anvil/run']
+           '/lcrc/group/acme/ac.dcomeau/acme_scratch/anvil/20210614.A_WCYCL1850-DIB-ISMF_CMIP6.ne30_oECv3wLI.DIBbugfix.anvil/run',
+           '/lcrc/group/acme/ac.mhoffman/acme_scratch/anvil/20210730.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.DIBbugfix.anvil/run',
+           '/lcrc/group/acme/ac.mhoffman/acme_scratch/anvil/20210901.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.VGM.DIBbugfix.anvil/run']
 meshpath = ['/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
             '/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
             '/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
             '/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
             '/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
+            '/lcrc/group/acme/data/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
+            '/lcrc/group/acme/data/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
             '/lcrc/group/acme/data/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc']
 
 
