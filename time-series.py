@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 import scipy.signal
 from matplotlib import cm
 
-fmesh=netCDF4.Dataset('/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc')
+#fmesh=netCDF4.Dataset('/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc')
+fmesh=netCDF4.Dataset('/lcrc/group/e3sm/data/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc')
 latCell = fmesh.variables['latCell'][:]
 lonCell = fmesh.variables['lonCell'][:]
 xCell = fmesh.variables['xCell'][:]
@@ -28,21 +29,23 @@ pii=3.14159
 idxBIS = np.nonzero( (latCell<-71.0/180.0*pii) * (latCell>-76.0/180.0*pii) * (lonCell>330.0/360.0*2.0*pii) * (lonCell<350.0/360.0*2*pii) )[0]
 idxFS =  np.nonzero( (latCell<-74.0/180.0*pii) * (latCell>-76.0/180.0*pii) * (lonCell>320.0/360.0*2.0*pii) * (lonCell<330.0/360.0*2*pii) )[0]
 idxFT =  np.nonzero( (latCell<-76.0/180.0*pii) * (latCell>-78.0/180.0*pii) * (lonCell>320.0/360.0*2.0*pii) * (lonCell<330.0/360.0*2*pii) )[0]
+idxFRIS =  np.nonzero( (latCell<-74.5/180.0*pii) * (latCell>-85.0/180.0*pii) * (lonCell>(360.0-85.0)/360.0*2.0*pii) * (lonCell<332.0/360.0*2*pii) )[0]
 
 
 idxEAIS = np.nonzero(  (lonCell>330.0/360.0*2.0*pii) + (lonCell<60.0/360.0*2*pii) )[0]
 #idxSill=210384-1 # filchner sill
 
-path='/project/projectdirs/m3412/simulations/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist'
+#path='/project/projectdirs/m3412/simulations/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist'
 #path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF.T62_oEC60to30v3wLI.cori-knl/run'
 #path='/global/cscratch1/sd/hoffman2/acme_scratch/edison/archive/20190306.A_WCYCL1850-DIB-ISMF_CMIP6.ne30_oECv3wLI.edison/ocn/hist'
 #path='/global/cscratch1/sd/hoffman2/acme_scratch/edison/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/run'
 
 #diffpath = False
 #diffpath='/global/cscratch1/sd/hoffman2/acme_scratch/edison/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/run'
+path='/lcrc/group/acme/ac.mhoffman/acme_scratch/anvil/20210730.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.DIBbugfix.anvil/run'
 
 #years = np.arange(50,110,1)
-years = np.arange(50,55,1)
+years = np.arange(201,207,1)
 months = np.arange(1,13,1)
 months = np.arange(1,2,1)
 nt = len(years)*len(months)
@@ -61,15 +64,16 @@ Zbins = (k0, k100, k200, k300, k400)
 nZbins = len(Zbins)
 ZbinName=('0-100', '100-200', '200-300', '300-400', '400-500', '500+')
 
-Boxes = (idxBIS, idxFS, idxFT)
+Boxes = (idxBIS, idxFS, idxFT, idxFRIS)
 nBoxes = len(Boxes)
-BoxName = ('Brunt IS', 'Filchner Sill', 'Filchner Trough')
+BoxName = ('Brunt IS', 'Filchner Sill', 'Filchner Trough', 'FRIS')
 
 Sall = np.zeros((nt, nBoxes, nZbins))
 Tall = np.zeros((nt, nBoxes, nZbins))
 
 Mall = np.zeros((nt, nBoxes))
 MEAIS = np.zeros((nt,))
+MFRIS = np.zeros((nt,))
 
 times = np.zeros((nt,))
 
@@ -104,6 +108,7 @@ ncol=1
 axM = fig.add_subplot(nrow, ncol, 1)
 plt.plot(times, Mall[:,0]*-5, 'k-', label="Brunt x5")
 plt.plot(times, MEAIS[:]*-1, 'b-', label="EAIS")
+plt.plot(times, Mall[:,3]*-1, 'r-', label="FRIS")
 plt.ylabel('relative melt (flipped)')
 plt.title('melt')
 plt.legend()

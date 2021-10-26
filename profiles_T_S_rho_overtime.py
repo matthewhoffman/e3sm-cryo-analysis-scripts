@@ -14,7 +14,8 @@ from matplotlib import cm
 
 pii=3.14159
 
-fmesh=netCDF4.Dataset('/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc')
+#fmesh=netCDF4.Dataset('/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc')
+fmesh=netCDF4.Dataset('/lcrc/group/e3sm/data/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc')
 latCell = fmesh.variables['latCell'][:]
 lonCell = fmesh.variables['lonCell'][:]
 xCell = fmesh.variables['xCell'][:]
@@ -23,10 +24,10 @@ depths = fmesh.variables['refBottomDepth'][:]
 #idx=67250-1
 #idx = np.argmin( (latCell-(-1.323514))**2 + (lonCell-5.672896)**2)  #122901-1
 #idx=198673-1
-idx = np.argmin( (latCell-(-77.75/180.0*pii))**2 + (lonCell-((360.0-36.15)/180.0*pii ))**2)  # Darelius 2016 Msouth
+#idx = np.argmin( (latCell-(-77.75/180.0*pii))**2 + (lonCell-((360.0-36.15)/180.0*pii ))**2)  # Darelius 2016 Msouth
 #idx = np.argmin( (latCell-(-77.0083/180.0*pii))**2 + (lonCell-((360.0-34.05)/180.0*pii ))**2)  # Darelius 2016 Mnorth
 #idx = np.argmin( (latCell-(-74.67/180.0*pii))**2 + (lonCell-((360.0-30.5)/180.0*pii ))**2)  # S4E Arthun et al 2012
-#idx=210384-1 # filchner sill
+idx=210384-1 # filchner sill
 print("idx=",idx)
 
 maxLevelCell=fmesh.variables['maxLevelCell'][idx]
@@ -51,7 +52,7 @@ plt.plot(yCell[idx], xCell[idx], 'r.')
 
 # OLD PATHS
 #path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190923.GMPAS-IAF.T62_oEC60to30v3wLI.cori-knl/run'
-#path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist/'
+#path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist/'#path='/global/cscratch1/sd/hoffman2/acme_scratch/edison/archive/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/ocn/hist'
 #path='/global/cscratch1/sd/hoffman2/acme_scratch/edison/archive/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/ocn/hist'
 ##path='/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist/'
 
@@ -68,15 +69,20 @@ plt.plot(yCell[idx], xCell[idx], 'r.')
 #path='/global/cscratch1/sd/sprice/acme_scratch/cori-knl/20191018.A_WCYCL1850-DIB-ISMF_CMIP6.ne30_oECv3wLI.cori-knl.testNewGM/run'
 
 # NEW PATHS in Project dir
-path='/project/projectdirs/m3412/simulations/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist/'
+#path='/project/projectdirs/m3412/simulations/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist/'
 #path='/project/projectdirs/m3412/simulations/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/ocn/hist/'
+path='/lcrc/group/acme/ac.mhoffman/acme_scratch/anvil/20210730.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.DIBbugfix.anvil/run'
+path='/lcrc/group/acme/ac.mhoffman/acme_scratch/anvil/20210818.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.DIBbugfix-17myrDML.anvil/run'
+path='/lcrc/group/acme/ac.dcomeau/acme_scratch/anvil/20210614.A_WCYCL1850-DIB-ISMF_CMIP6.ne30_oECv3wLI.DIBbugfix.anvil/run'
+path='/lcrc/group/acme/ac.mhoffman/acme_scratch/anvil/20210901.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.VGM.DIBbugfix.anvil/run'
 
 years = np.arange(50,129,1)
 years = np.arange(1,139,1)
 years = np.arange(1,10,1)
 #years = np.arange(65,75,1)
 #years = np.arange(1,100,1)
-years = np.arange(1,6,1)
+years = np.arange(1,139,1)
+#years = np.arange(201,230,1)
 months = np.arange(1,13,1)
 nt = len(years)*len(months)
 times = np.zeros((nt,))
@@ -182,6 +188,7 @@ plt.pcolor(times, z[:nz], Tdata, vmin=-2.1, vmax=1.6, cmap='nipy_spectral')#, vm
 #plt.pcolor(times, z[:nz], Tdata, vmin=-2.25, vmax=-1.5, cmap='RdBu_r')# Darelius 2016 approx.
 #plt.pcolor(times, z[:nz], Tdata, vmin=-2.2, vmax=-0.5, cmap=plt.cm.get_cmap('inferno', 17))# Daae GRL figure
 plt.pcolor(times, z[:nz], Tdata, vmin=-2.25, vmax=-1.40, cmap=plt.cm.get_cmap('RdYlBu_r', 17))# Darelius 2016  figure 2
+#plt.pcolor(times, z[:nz], Tdata, vmin=-2., vmax=-1.0, cmap=plt.cm.get_cmap('RdYlBu_r', 17))# Arthun 2012  figure 3
 #axT.set_ylim((maxDepth, 0))
 plt.colorbar()
 #plt.contour(times, z[:nz], Tdata, [-1.8])
@@ -222,7 +229,7 @@ waterMassMask[np.where(Tdata<(-0.0575*Sdata+0.0901))] = 6 # ISW
 axMass = fig.add_subplot(nrow,ncol,6, sharex=axT)
 plt.pcolor(times, z[:nz], waterMassMask, vmin=0.5, vmax=6.5, cmap=cm.get_cmap('tab10',6) )
 cbar = plt.colorbar(ticks=[1,2,3,4,5,6])
-cbar.ax.set_yticklabels(['CDW','mCDW','HSSW','LSSW','AASW','ISW']) 
+cbar.set_ticklabels(['CDW','mCDW','HSSW','LSSW','AASW','ISW']) 
 plt.xlabel('year')
 plt.ylabel('depth (m)')
 
