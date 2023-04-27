@@ -37,7 +37,8 @@ region_name = ['frisEAcoast','fris','gyre_interior',
                'etrough_crossshelf','trough_crossshelf','wtrough_crossshelf',
                'trough_ice','M31W_W','M31W','N31W','S4E','wedwang','wedwang_c',
                'wed_pyc_west','wed_pyc_filchner_trough','wed_pyc_brunt',
-               'wed_pyc_Ryan','wed_pyc_Ryan_shallow','wed_pyc_Ryan_shelf']
+               'wed_pyc_Ryan','wed_pyc_Ryan_shallow','wed_pyc_Ryan_shelf',
+               'EAcoast']
 # M31W and S4E from Ryan et al. 2017 JGR Oceans
 region_is_point = ['S4E','M31W','M31W_W','N31W']
 
@@ -56,6 +57,7 @@ region_zbounds     = np.zeros((len(region_name),2))
 for i in region_name:
     region_zbounds[region_name.index(i)] = [-9999.,20.]
 
+region_title[region_name.index('EAcoast')] = 'Eastern Weddell Ice Shelves'
 region_title[region_name.index('wed_pyc_west')] = 'Eastern Weddell Shelf'
 region_title[region_name.index('wed_pyc_Ryan_shelf')] = 'on-shelf'
 region_title[region_name.index('wed_pyc_Ryan_shallow')] = 'on-shelf'
@@ -76,6 +78,9 @@ region_coordbounds[region_name.index('N31W')] = ([360-30.994,360-30.994],
                                                  [-72.8,-72.8])
 region_coordbounds[region_name.index('S4E')] = ([360-30.58,360-30.58],
                                                 [-74.62,-74.62])
+region_xybounds   [region_name.index('EAcoast')]      = None
+region_coordbounds[region_name.index('EAcoast')]      = [332,350],[-90,-60]
+region_zbounds    [region_name.index('EAcoast')]      = None
 region_xybounds   [region_name.index('frisEAcoast')]  = [0e6,2e6],[-2e6,0] 
 region_coordbounds[region_name.index('frisEAcoast')]  = [300,360],[-180,-60]
 region_xybounds   [region_name.index('fris')]         = [0.2e6,1.5e6],[-1.5e6,-0.4e6] 
@@ -133,70 +138,26 @@ t_season = [0,
 
 set_dpi = 100
 
-#runtitle = ['G-ISMF',
-#           'noEAmelt',
-#           'modGM',
-#           'uniformIB',
-#           'B-ISMF']
-runtitle = ['CTRL-bug',
-           'noEAmelt-bug',
-           'modGM-bug',
-           'uniformIB',
-           'B-ISMF-bug',
-           'B-ISMF',
-           'CTRL',
-           'modGM']
-runname = ['ISMF-bug',
-           'ISMF-noEAIS-bug',
-           'ISMF-3dGM-bug',
-           'ISMF-noDIB',
-           'B-ISMF-bug',
-           'B-ISMF',
+runtitle = ['CGM-UIB',
+            'CGM-DIB',
+            'VGM-DIB']
+runname = ['ISMF-noDIB',
            'ISMF',
            'ISMF-3dGM']
-run_tipping_year = [98, nan, nan, 71, nan, nan, nan, nan]
+run_tipping_year = [71, nan, nan]
 #run_color = ['cornflowerblue',
 #             'k',
 #             'darkorange']
 run_color = ['k',
-             '#1b9e77',
-             '#d95f02',
-             '#7570b3',
-             'r',
-             'k',
-             'k',
-             '#d95f02']
-#run_color = ['b',
-#             '#1b9e77',
-#             '#d95f02',
-#             '#7570b3',
-#             'k']
-savepath_nersc = '/global/homes/c/cbegeman/weddell_output/new_figs/'
-runpath = [
-#          '/global/cfs/cdirs/m3412/simulations/20190225.GMPAS-DIB-IAF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist',
-#           '/project/m3412/mpas_analysis_output/polarRegions/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/'.
-           '/global/cfs/cdirs/m3412/simulations/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist',
-#           '/global/cscratch1/sd/dcomeau/acme_scratch/cori-knl/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist',
-           
-#            '/global/cfs/cdirs/m3412/simulations/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/archive/ocn/hist',
-             '/global/cfs/cdirs/m3412/simulations/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/ocn/hist',
-           #'/global/cscratch1/sd/hoffman2/acme_scratch/edison/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/run',
-#           '/global/cscratch1/sd/hoffman2/acme_scratch/edison/archive/20190423.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.edison.restrictedMelt/ocn/hist',
-
-           #'/global/cscratch1/sd/sprice/acme_scratch/cori-knl/20190819.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl.testNewGM/archive/ocn/hist',
-           '/project/projectdirs/m3412/simulations/20190819.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl.testNewGM/archive/ocn/hist', 
-           
-           '/global/cscratch1/sd/hoffman2/e3sm_scratch/cori-knl/20191003.GMPAS-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist',
-           '/global/cfs/cdirs/m3412/simulations/20190306.A_WCYCL1850-DIB-ISMF_CMIP6.ne30_oECv3wLI.edison/ocn/hist',
-           '/lcrc/group/acme/ac.dcomeau/acme_scratch/anvil/20210614.A_WCYCL1850-DIB-ISMF_CMIP6.ne30_oECv3wLI.DIBbugfix.anvil/run',
-           '/lcrc/group/acme/ac.mhoffman/acme_scratch/anvil/20210730.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.DIBbugfix.anvil/run',
-           '/lcrc/group/acme/ac.mhoffman/acme_scratch/anvil/20210901.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.VGM.DIBbugfix.anvil/run']
-meshpath = ['/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
-            '/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
-            '/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
-            '/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
-            '/project/projectdirs/e3sm/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
-            '/lcrc/group/acme/data/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
+             '#7570b3', # purple
+             '#1b9e77'] # green
+savepath = '/global/homes/c/cbegeman/weddell_output/new_figs/'
+obspath = '/lcrc/group/acme/diagnostics/observations'
+runpath = ['/lcrc/group/acme/ac.mhoffman/acme_scratch/anvil/20191003.GMPAS-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl'
+           '/lcrc/group/acme/ac.mhoffman/acme_scratch/anvil/20210730.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.DIBbugfix.anvil',
+           '/lcrc/group/acme/ac.mhoffman/acme_scratch/anvil/20210901.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.VGM.DIBbugfix.anvil']
+dataSubdirectory = 'archive/ocn/hist'
+meshpath = ['/lcrc/group/acme/data/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
             '/lcrc/group/acme/data/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
             '/lcrc/group/acme/data/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc']
 
