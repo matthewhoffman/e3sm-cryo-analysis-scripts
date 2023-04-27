@@ -1,0 +1,1 @@
+ffmpeg -framerate 5 -i ../weddell_output/new_transects/ISMF-noEAIS_${var}_${loc}_%d_limTrue.png -pix_fmt yuv420p ../weddell_output/new_transects/ISMF-noEAIS_${var}_${loc}_70-90_limTrue.mov
