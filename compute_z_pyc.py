@@ -27,8 +27,9 @@ from plot_config import *
 # PARAMETERS
 
 var = ['z_pyc']
-run = ['ISMF','ISMF-noEAIS','ISMF-3dGM','ISMF-noDIB']
-yr = [10,180]
+#run = ['ISMF','ISMF-noEAIS','ISMF-3dGM','ISMF-noDIB']
+run = ['ISMF-noDIB']
+yr = [0,200]
 loc = 'wed_pyc_Ryan'
 #loc = 'wed_pyc_brunt'
 #loc = 'wed_pyc_filchner_trough'
@@ -41,8 +42,8 @@ zlim_shelf = [-800,10]#n=57
 zlim_deep = [-4500,-2500]# n=136
 #zlim_deep = [-4500,-3500]# n=94
 
-filenames= ['ISMF_zpyc_'+loc+'_10-180_zlim-500-10',
-            'ISMF_zpyc_'+loc+'_10-180_zlim-4500--3500'
+#filenames= ['ISMF_zpyc_'+loc+'_10-180_zlim-500-10',
+#            'ISMF_zpyc_'+loc+'_10-180_zlim-4500--3500'
 #            'ISMF_zpyc_wed_pyc_Ryan_70-101_zlim-2000--500',
 #            'ISMF_zpyc_wed_pyc_Ryan_70-101_zlim-2000--1000',
 #             'ISMF_zpyc_wed_pyc_Ryan_50-150_zlim-500-10',
@@ -51,7 +52,7 @@ filenames= ['ISMF_zpyc_'+loc+'_10-180_zlim-500-10',
 #            'ISMF_zpyc_wed_pyc_Ryan_70-101_zlim-4500--2500']
 #            'ISMF_zpyc_wed_pyc_Ryan_50-150_zlim-4500--3500'
 #            'ISMF_zpyc_wed_pyc_Ryan_70-101_zlim-3500--1000'
-             ]
+#             ]
 filename_T = 'ISMF_TS_20mab_76S30W_70-101'
 
 #get_number_samples = True
@@ -96,10 +97,8 @@ if get_number_samples:
     print('Number of points in domain after filtering = ',len(idx))
 #-----------------------------------------------------------
 
-wed.pycnocline_depth_t([10,50],run_list=run,region=loc,plot_histogram=False,zlim=zlim_shelf)
-wed.pycnocline_depth_t([10,50],run_list=run,region=loc,plot_histogram=False,zlim=zlim_deep)
-wed.pycnocline_depth_t([150,180],run_list=run,region=loc,plot_histogram=False,zlim=zlim_shelf)
-wed.pycnocline_depth_t([150,180],run_list=run,region=loc,plot_histogram=False,zlim=zlim_deep)
+wed.pycnocline_depth_t(yr,run_list=run,region=loc,plot_histogram=False,zlim=zlim_shelf)
+wed.pycnocline_depth_t(yr,run_list=run,region=loc,plot_histogram=False,zlim=zlim_deep)
 
 #wed.plot_zpyc_t(filenames,run=run,tlim=yr,placename=['on-shelf','off-shelf'],
 #                plot_difference = True,cutoff=0,show_obs=True,obs=wed_pyc_Ryan_dzpyc_obs)

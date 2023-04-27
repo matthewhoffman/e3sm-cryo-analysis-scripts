@@ -267,9 +267,9 @@ def z_pycnocline(z,T,S,diags=False,cellidx=0,zmin=-9999,
 #   savepath  path to save plot images
 #----------------------------------------------------------------------
 def extract_tseries(runlist,varlist,year_range,
-                    placename = '',
+                    placename = '', land_ice_mask=False,
                     lat=-9999,lon=-9999,
-                    zrange=[20,-9999],zeval = -9999, zab=False,
+                    zrange=None, zeval=-9999, zab=False,
                     ztop_pyc = [False],zbottom_pyc = [False],
                     operation = 'mean',
                     overwrite=True, output_filename = '',
@@ -286,9 +286,10 @@ def extract_tseries(runlist,varlist,year_range,
         zbottom_pyc = [False for i in varlist]
     if output_filename == '':
         filename = ('_'.join(runlist) + '_' + 
-                    ''.join(varlist) + '_' + placename +
-                    '_z{0:03d}-{1:03d}'.format(zrange[0], zrange[1]) + m + 
-                    '_t{0:03d}-{1:03d}'.format(year_range[0], year_range[1]) )
+                    ''.join(varlist) + '_' + placename)
+        if zrange is not None:
+            filename = filename + '_z{0:03d}-{1:03d}'.format(zrange[0], zrange[1]) + m
+        filename = filename + '_t{0:03d}-{1:03d}'.format(year_range[0], year_range[1])
     else:
         filename = output_filename
     print('extract tseries',savepath + filename + '.txt')
@@ -311,11 +312,10 @@ def extract_tseries(runlist,varlist,year_range,
                            plot_map=False,savepath=savepath)
         idx = [idx]
     else:
-        idx = pick_from_region(region=placename,run=runlist[0],plot_map=False)
+        idx = pick_from_region(region=placename, run=runlist[0],
+                               land_ice_mask = land_ice_mask,
+                               plot_map=False)
 
-    kmax     = fmesh.variables['maxLevelCell'][idx]
-    zmid,_,_ = zmidfrommesh(fmesh,cellidx=idx)
-    
     #if 'unormal' in varlist:
     #    _,_,_,transect_angle = pick_transect(option='by_index',
     
@@ -333,23 +333,26 @@ def extract_tseries(runlist,varlist,year_range,
                 header = header + '_belowpyc'
             colheadings.append(header)
     
-    zidx = np.zeros((len(idx),2),dtype=int)
-    for i in range(0,len(idx)):
-        if zrange[1] != -9999:
-            if zab:
-                zeval = np.add(zmid[0][-1],zeval)
-            zidx[i,:] = ([np.argmin(np.abs(np.subtract(zmid,zeval[0]))),
-                     np.argmin(np.abs(np.subtract(zmid,zeval[1])))])
-            if zidx[i,1] == zidx[i,0]:
-                zidx[i,1] += 1
-            if zidx[i,1] < zidx[i,0]:
-                zidx[i,:] = [zidx[i,1],zidx[i,0]] 
-        elif zeval != -9999:
-            if zab:
-                zeval = np.add(zmid[0][-1],zeval)
-            else:
-                zeval = -1.*zeval
-            zidx[i,0] = np.argmin(np.abs(np.subtract(zmid[0],zeval)))
+    if zrange is not None:
+        kmax     = fmesh.variables['maxLevelCell'][idx]
+        zmid,_,_ = zmidfrommesh(fmesh,cellidx=idx)
+        zidx = np.zeros((len(idx),2),dtype=int)
+        for i in range(0,len(idx)):
+            if zrange[1] != -9999:
+                if zab:
+                    zeval = np.add(zmid[0][-1],zeval)
+                zidx[i,:] = ([np.argmin(np.abs(np.subtract(zmid,zeval[0]))),
+                         np.argmin(np.abs(np.subtract(zmid,zeval[1])))])
+                if zidx[i,1] == zidx[i,0]:
+                    zidx[i,1] += 1
+                if zidx[i,1] < zidx[i,0]:
+                    zidx[i,:] = [zidx[i,1],zidx[i,0]] 
+            elif zeval != -9999:
+                if zab:
+                    zeval = np.add(zmid[0][-1],zeval)
+                else:
+                    zeval = -1.*zeval
+                zidx[i,0] = np.argmin(np.abs(np.subtract(zmid[0],zeval)))
     
     for yr in years:
         print(yr)

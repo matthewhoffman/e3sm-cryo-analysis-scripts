@@ -17,10 +17,15 @@ from collections import OrderedDict
 import xarray as xr
 import glob
 from plot_config import *
+from weddell_mod import extract_tseries
 
 savepath=savepath_nersc
 filename = 'ISMF_melt_t_Filchner_Ronne_log'
- 
+
+#run_list = ['ISMF-noDIB', 'ISMF', 'ISMF-3dGM']
+run_list = ['ISMF-noDIB']
+year_range = [0, 1]
+
 runs = OrderedDict()
 runs['ISMF'] = {'ts_dir':
 #'/global/cscratch1/sd/dcomeau/e3sm_scratch/cori-knl/mpas-analysis-output/20190225.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/yrs120-150/timeseries/iceShelfFluxes',
@@ -51,14 +56,65 @@ runs['ISMF-3dGM'] = {'ts_dir':
 'end':100
 }
 
+Rignot_data = 'Ocean/Melt/Rignot_2013_melt_rates.csv'
+# process obs
+obsFileNameDict = {'Rignot et al. (2013)':
+                   'Rignot_2013_melt_rates_20201117.csv',
+                   'Rignot et al. (2013) SS':
+                   'Rignot_2013_melt_rates_SS_20201117.csv'}
+
+ice_shelves_to_plot = ['Filchner', 'Ronne']
+
+# former is Rignot, latter is MPAS
+ice_shelf_names = {'Filchner':'Filchner',
+                   'Ronne':'Ronne',
+                   'Brunt_Stancomb':'Brunt_Stancomb',
+                   'Stancomb-Wills':None,
+                   'Riiser-Larsen':None,
+                   'Quar':None,
+                   'Ekstrom':None
+                  }
+region=5 #FIS
+Rregion=6 #RIS
+#7=FRIS
+
+extract_tseries(run_list, ['land_ice_fw_flux'], year_range,
+                placename = 'EAcoast', land_ice_mask = True)
+
+obsDict = {}  # dict for storing dict of obs data
+# for ice_shelf_to_plot in ice_shelves_to_plot:
+for obsName in obsFileNameDict:
+    obsFileName = '{}/{}'.format(observationsDirectory,
+                                 obsFileNameDict[obsName])
+    obsDict[obsName] = {}
+    obsFile = csv.reader(open(obsFileName, 'rU'))
+    next(obsFile, None)  # skip the header line
+    for line in obsFile:  # some later useful values commented out
+        shelfName = line[0]
+        if shelfName != ice_shelf_to_plot:
+            continue
+
+        # surveyArea = line[1]
+        meltFlux = float(line[2])
+        meltFluxUncertainty = float(line[3])
+        meltRate = float(line[4])
+        meltRateUncertainty = float(line[5])
+        # actualArea = float( line[6] )  # actual area here is in sq km
+
+        # build dict of obs. keyed to filename description
+        # (which will be used for plotting)
+        obsDict[obsName] = {
+            'meltFlux': meltFlux,
+            'meltFluxUncertainty': meltFluxUncertainty,
+            'meltRate': meltRate,
+            'meltRateUncertainty': meltRateUncertainty}
+        break
+
+
 fig1 = plt.figure(1, facecolor='w')
 nrow=1
 ncol=1
 axMelt = fig1.add_subplot(nrow, ncol, 1)
-
-region=5 #FIS
-Rregion=6 #RIS
-#7=FRIS
 
 #colors=[ cm.tab10(x) for x in np.linspace(0.0, 1.0, 4) ]
 r=0

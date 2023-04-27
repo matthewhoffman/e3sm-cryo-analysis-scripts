@@ -459,27 +459,36 @@ def pick_transect(option='coord',lat=[-76,-76],lon=[360-32,360-32],run='ISMF',
     return cellidx, edgeidx, dist, angle
 
 def pick_from_region(region='frisEAcoast',run = 'ISMF',
-               plot_map=False, overwrite=False, savepath=savepath_nersc):
+                     land_ice_mask = False, plot_map=False,
+                     overwrite=False, savepath=savepath_nersc):
     
     fmesh = netCDF4.Dataset(meshpath[runname.index(run)])
 
     # import variables from file
-    print(region_zbounds[region_name.index(region),1]) 
     latCell = fmesh.variables['latCell'][:]
     lonCell = fmesh.variables['lonCell'][:]
     xCell   = fmesh.variables['xCell'][:]
     yCell   = fmesh.variables['yCell'][:]
     zmax    = np.multiply(-1,fmesh.variables['bottomDepth'][:])
-    idx_bool = ((xCell   < region_xybounds   [region_name.index(region),0,1]) & 
-                (xCell   > region_xybounds   [region_name.index(region),0,0]) & 
-                (yCell   < region_xybounds   [region_name.index(region),1,1]) & 
-                (yCell   > region_xybounds   [region_name.index(region),1,0]) & 
-                (latCell < region_coordbounds[region_name.index(region),1,1]*deg2rad) & 
-                (latCell > region_coordbounds[region_name.index(region),1,0]*deg2rad) & 
-                (lonCell < region_coordbounds[region_name.index(region),0,1]*deg2rad) & 
-                (lonCell > region_coordbounds[region_name.index(region),0,0]*deg2rad) &
-                (zmax    < region_zbounds    [region_name.index(region),1]) & 
-                (zmax    > region_zbounds    [region_name.index(region),0]) 
-               )
+    idx_bool = np.ones_like(xCell, dtype=bool)
+    if region_xybounds[region_name.index(region)] is not None:
+        idx_bool = (idx_bool & 
+                    (xCell < region_xybounds[region_name.index(region),0,1]) & 
+                    (xCell > region_xybounds[region_name.index(region),0,0]) & 
+                    (yCell < region_xybounds[region_name.index(region),1,1]) & 
+                    (yCell > region_xybounds[region_name.index(region),1,0]))
+    if region_coordbounds[region_name.index(region)] is not None:
+        idx_bool = (idx_bool & 
+                    (latCell < region_coordbounds[region_name.index(region),1,1]*deg2rad) & 
+                    (latCell > region_coordbounds[region_name.index(region),1,0]*deg2rad) & 
+                    (lonCell < region_coordbounds[region_name.index(region),0,1]*deg2rad) & 
+                    (lonCell > region_coordbounds[region_name.index(region),0,0]*deg2rad))
+    if region_zbounds[region_name.index(region)] is not None:
+        idx_bool = (idx_bool & 
+                    (zmax < region_zbounds[region_name.index(region),1]) & 
+                    (zmax > region_zbounds[region_name.index(region),0]))
+    if land_ice_mask:
+        landIceMask = fmesh.variables['landIceMask'][:]
+        idx_bool = (idx_bool & (landIceMask == 1))
     cellidx = np.asarray(idx_bool.nonzero(),dtype=int)[0,:]
     return cellidx
