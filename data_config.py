@@ -15,3 +15,6 @@ runpath = ['/lcrc/group/acme/ac.mhoffman/acme_scratch/anvil/20191003.GMPAS-IAF-I
 meshpath = ['/lcrc/group/acme/data/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
             '/lcrc/group/acme/data/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc',
             '/lcrc/group/acme/data/inputdata/ocn/mpas-o/oEC60to30v3wLI/oEC60to30v3wLI60lev.171031.nc']
+analysispath = ['/lcrc/group/acme/ac.mhoffman/scratch/anvil/mpas_analysis_output/20191003.GMPAS-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/yrs091-100',
+                '/lcrc/group/acme/ac.mhoffman/scratch/anvil/mpas_analysis_output/20210730.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.DIBbugfix.anvil/yrs191-200',
+                '/lcrc/group/acme/ac.mhoffman/scratch/anvil/mpas_analysis_output/20210901.GMPAS-DIB-IAF-ISMF.T62_oEC60to30v3wLI.VGM.DIBbugfix.anvil/yrs191-200']

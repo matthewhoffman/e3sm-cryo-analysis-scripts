@@ -2469,3 +2469,16 @@ def plot_surf_var(var,yr,mo,run=['ISMF'],locname='fris',plottype = 'abs',
     plt.savefig(savepath + '/' + filename + '.png',dpi=set_dpi)
     plt.close()
 
+def compute_Rignot_melt():
+    obs_filename = f'{obspath}/Ocean/Melt/Rignot_2013_melt_rates_6000.0x6000.0km_10.0km_Antarctic_stereo.nc'
+    obs_dataset = xr.open_dataset(obs_filename)
+    lat = obs_dataset.lat.values
+    lon = obs_dataset.lon.values
+    meltRate = obs_dataset.meltRate.values
+    idx_bool = ((lon < region_coordbounds[region_name.index(region),0,1] - 360)
+                 & (lon > region_coordbounds[region_name.index(region),0,0] - 360))
+    cellidx = np.asarray(idx_bool.nonzero(),dtype=int)[0,:]
+    # Each cell is 10km^2 so we do not need to weight by cell area
+    meanMeltRate = np.nanmean(meltRate[cellidx])
+    print(f'Computed mean melt: {meanMeltRate}')
+    return

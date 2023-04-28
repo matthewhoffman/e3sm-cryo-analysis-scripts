@@ -217,3 +217,30 @@ def extract_tseries(runlist,varlist,year_range,
         wr.writerow(rowentries)
 
     return 
+
+def extract_MPAS_melt_by_shelf(run_list, ice_shelves_to_plot):
+    for run in run_list:
+        filelist = glob.glob(f'{analysispath[runname.index(run)]}/timeseries/iceShelfFluxes/iceShelfFluxes*.nc')
+        decYearMpas = np.zeros((len(filelist*12)))
+        meltRateMpas = np.zeros((len(ice_shelves_to_plot), len(filelist*12)))
+        f = xr.open_dataset(filelist[0])
+        regionNames = f.regionNames.values.tolist()
+        k = 0
+        for j, infile in enumerate(sorted(filelist)):
+            f = xr.open_dataset(infile)
+            Year = int(infile[-7:-3])
+            print(Year)
+            for i, shelfName in enumerate(ice_shelves_to_plot[:-1]):
+                data = f['meltRates'].isel(nRegions=regionNames.index(shelfName))
+                #meltRateMpas[i, j] = data.mean(dim='Time') # each time index holds 1 year
+                if np.shape(data.values)[0] > 12:
+                    print(f'Skipping {infile}')
+                    continue
+                meltRateMpas[i, k:k+12] = data.values # each time index holds 1 year
+            decYearMpas[k:k+12] = [Year + i/12 for i in range(12)]
+            k = k+12
+        ds = xr.Dataset()
+        ds['meltRate'] = xr.DataArray(meltRateMpas, dims=('iceShelf', 'time'))
+        ds['times'] = xr.DataArray(decYearMpas, dims=('time'))
+        ds.to_netcdf(f'{savepath}/{run}_Filchner-Ronne-MPAS-melt-rates.nc')
+    return

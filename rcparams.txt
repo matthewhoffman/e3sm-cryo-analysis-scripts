@@ -3,6 +3,7 @@ axes.formatter.min_exponent : 3
 axes.formatter.useoffset : True
 axes.formatter.offset_threshold : 4 
 axes.labelsize : 14
+axes.titlesize : 14
 
 figure.titlesize : 16
 figure.dpi : 200 
@@ -10,17 +11,14 @@ figure.facecolor : white
 figure.edgecolor : white
 figure.figsize : 12.,4.
 
-font.family : sans-serif
-font.sans-serif : Helvetica
-
 lines.linewidth : 2 
 lines.linestyle : - 
 lines.marker : None
 
 legend.loc : center
 legend.frameon : True
-legend.fontsize : 14
-legend.title_fontsize : 16
+legend.fontsize : 12
+legend.title_fontsize : 14
 #legend.borderaxespad : 100 
 #legend.bbox_to_anchor : 0.5,-0.25
 

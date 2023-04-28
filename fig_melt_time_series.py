@@ -8,7 +8,7 @@ import glob
 import pandas
 import csv
 from data_config import *
-from extract_data import extract_tseries
+from extract_data import extract_tseries, extract_MPAS_melt_by_shelf
 from plot_config import *
 from region_config import *
 import pyproj
@@ -19,8 +19,6 @@ import matplotlib.pyplot as plt
 run_list = runname
 year_range = [10, 100]
 region = 'EAcoast'
-#extract_tseries([run_list], ['land_ice_fw_flux'], year_range,
-#                placename = 'fris', land_ice_mask = False)
 var = 'land_ice_fw_flux'
 compute_mpas_region_melt = False
 compute_Rignot_melt = False
@@ -30,26 +28,11 @@ create_plot = True
 ice_shelves_to_plot = ['Filchner', 'Ronne', 'EAshelves']
 ice_shelves_titles = ['Filchner', 'Ronne', 'Eastern Weddell']
 EAshelves = ['Brunt_Stancomb', 'Riiser-Larsen', 'Quar', 'Ekstrom']
-#filename = f'{savepath}/bogus'
-#if not os.path.exists(filename):
+
 if compute_mpas_region_melt:
     extract_tseries(run_list, [var], year_range,
                     placename='EAcoast', land_ice_mask=True,
                     operation='area_mean')
-
-if compute_Rignot_melt:
-    obs_filename = f'{obspath}/Ocean/Melt/Rignot_2013_melt_rates_6000.0x6000.0km_10.0km_Antarctic_stereo.nc'
-    obs_dataset = xr.open_dataset(obs_filename)
-    lat = obs_dataset.lat.values
-    lon = obs_dataset.lon.values
-    meltRate = obs_dataset.meltRate.values
-    idx_bool = ((lon < region_coordbounds[region_name.index(region),0,1] - 360)
-                 & (lon > region_coordbounds[region_name.index(region),0,0] - 360))
-    cellidx = np.asarray(idx_bool.nonzero(),dtype=int)[0,:]
-    print(len(cellidx))
-    # Each cell is 10km^2 so we do not need to weight by cell area
-    meanMeltRate = np.nanmean(meltRate[cellidx])
-    print(f'Computed mean melt: {meanMeltRate}')
 
 if get_Rignot_melt_by_shelf:
     Rignot_data = 'Ocean/Melt/Rignot_2013_melt_rates.csv'
@@ -69,7 +52,6 @@ if get_Rignot_melt_by_shelf:
                        'Quar':None,
                        'Ekstrom':None
                       }
-    print(ice_shelf_names.keys())
     obsDict = {}  # dict for storing dict of obs data
     # for ice_shelf_to_plot in ice_shelves_to_plot:
     for obsName in obsFileNameDict:
@@ -97,7 +79,7 @@ if get_Rignot_melt_by_shelf:
                 'meltRate': meltRate,
                 'meltRateUncertainty': meltRateUncertainty}
         obsDict[obsName] = iceDict
-    # print(obsDict)
+
     meanMeltRate = np.zeros(len(obsFileNameDict.keys()))
     meanMeltRateUncertainty = np.zeros(len(obsFileNameDict.keys()))
     for i, obsName in enumerate(obsFileNameDict):
@@ -117,43 +99,19 @@ if get_Rignot_melt_by_shelf:
             'area': cumArea,
             'meltFlux': 0,
             'meltFluxUncertainty': 0,
-            'meltRate': meanMeltRate,
-            'meltRateUncertainty': meanMeltRateUncertainty}
+            'meltRate': meanMeltRate[i],
+            'meltRateUncertainty': meanMeltRateUncertainty[i]}
     obsDict[obsName] = iceDict
-    print(f'Obs: {meanMeltRate[0]} +/- {meanMeltRateUncertainty[0]}')
-    print(f'SS: {meanMeltRate[1]} +/- {meanMeltRateUncertainty[1]}')
 
 if get_MPAS_melt_by_shelf:
-    for run in run_list:
-        filelist = glob.glob(f'{analysispath[runname.index(run)]}/timeseries/iceShelfFluxes/iceShelfFluxes*.nc')
-        decYearMpas = np.zeros((len(filelist*12)))
-        meltRateMpas = np.zeros((len(ice_shelves_to_plot), len(filelist*12)))
-        f = xr.open_dataset(filelist[0])
-        regionNames = f.regionNames.values.tolist()
-        k = 0
-        for j, infile in enumerate(sorted(filelist)):
-            f = xr.open_dataset(infile)
-            Year = int(infile[-7:-3])
-            print(Year)
-            for i, shelfName in enumerate(ice_shelves_to_plot[:-1]):
-                data = f['meltRates'].isel(nRegions=regionNames.index(shelfName))
-                #meltRateMpas[i, j] = data.mean(dim='Time') # each time index holds 1 year
-                if np.shape(data.values)[0] > 12:
-                    print(f'Skipping {infile}')
-                    continue
-                meltRateMpas[i, k:k+12] = data.values # each time index holds 1 year
-            decYearMpas[k:k+12] = [Year + i/12 for i in range(12)]
-            k = k+12
-        ds = xr.Dataset()
-        ds['meltRate'] = xr.DataArray(meltRateMpas, dims=('iceShelf', 'time'))
-        ds['times'] = xr.DataArray(decYearMpas, dims=('time'))
-        ds.to_netcdf(f'{savepath}/{run}_Filchner-Ronne-MPAS-melt-rates.nc')
+   extract_MPAS_melt_by_shelf(run_list, ice_shelves_to_plot)
 
 if create_plot:
    # figure
-   fig1 = plt.figure(1, facecolor='w', figsize=(4,8))
+   fig1 = plt.figure(1, facecolor='w', figsize=(6,8))
    nrow = len(ice_shelves_to_plot)
    ncol = 1
+   axis_label = ['a', 'b', 'c']
    for i, ice_shelf in enumerate(ice_shelves_to_plot):
        axMelt = fig1.add_subplot(nrow, ncol, i+1)
        for run in run_list:
@@ -175,7 +133,7 @@ if create_plot:
                # the output is now in units of kg s^-1 m^-2
                mpas_melt = melt_flux * s_to_yr / rho_ice
                
-           axMelt.set_title(ice_shelves_titles[i], fontsize=10)
+           axMelt.set_title(f'{axis_label[i]}. {ice_shelves_titles[i]}', loc='left')
            axMelt.plot(times[mpas_melt != 0], mpas_melt[mpas_melt != 0], '-',
                        label=runtitle[runname.index(run)],
                        color=run_color[runname.index(run)],
@@ -184,16 +142,8 @@ if create_plot:
        boxHalfWidth = 10.
        obsName = 'Rignot et al. (2013)'
        obsShelf = obsDict[obsName][ice_shelf]
-       #axMelt.errorbar(50,
-       #             obsShelf['meltRate'],
-       #             yerr=obsShelf['meltRateUncertainty'],
-       #             fmt='*',
-       #             color='orange', ecolor='orange',
-       #             capsize=0,
-       #             label=obsName)
        # plot a box around the error bar to make it more visible
        boxHalfHeight = obsShelf['meltRateUncertainty']
-       print(boxHalfHeight)
        boxX = 50 + \
            boxHalfWidth * np.array([-1, 1, 1, -1, -1])
        boxY = obsShelf['meltRate'] + \
@@ -202,32 +152,22 @@ if create_plot:
                    label=obsName)
        obsName = 'Rignot et al. (2013) SS'
        obsShelf = obsDict[obsName][ice_shelf]
-       #axMelt.errorbar(150,
-       #             obsShelf['meltRate'],
-       #             yerr=obsShelf['meltRateUncertainty'],
-       #             fmt='*',
-       #             color='dodgerblue', ecolor='dodgerblue',
-       #             capsize=0,
-       #             label=obsName)
        # plot a box around the error bar to make it more visible
        boxHalfHeight = obsShelf['meltRateUncertainty']
-       print(boxHalfHeight)
        boxX = 150 + \
            boxHalfWidth * np.array([-1, 1, 1, -1, -1])
        boxY = obsShelf['meltRate'] + \
            boxHalfHeight * np.array([-1, -1, 1, 1, -1])
-
        axMelt.plot(boxX, boxY, '-', color='dodgerblue', linewidth=1,
                    label=obsName)
-       axMelt.set_ylim([1e-1, 6])
-       axMelt.set_yscale('log')
+       axMelt.set_xlim([0,200])
+       axMelt.set_ylim([-3e-2, 6])
        if i+1 == len(ice_shelves_to_plot):
-          axMelt.set_xlabel('Year', fontsize=10)
+          axMelt.set_xlabel('Year')#, fontsize=10)
+          h, l = axMelt.get_legend_handles_labels()
+          axMelt.legend(h[0:6], l[0:6], frameon=False, fontsize=10,
+                        loc='upper right')
        else:
           axMelt.set_xticklabels('')
-       if i == 0:
-          h, l = axMelt.get_legend_handles_labels()
-          axMelt.legend(h[0:6], l[0:6], frameon=False, fontsize=10, loc='upper right')
-       axMelt.set_ylabel('Melt rate (m yr$^{-1}$)', fontsize=10)
-       plt.savefig(f'{savepath}/mpas_melt_rates.png',dpi=set_dpi)
-#print(melt_rate)
+       axMelt.set_ylabel('Melt rate (m yr$^{-1}$)')
+       plt.savefig(f'{savepath}/ice-shelf-melt-timeseries.png',dpi=set_dpi)
