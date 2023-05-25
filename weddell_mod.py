@@ -39,13 +39,14 @@ from scipy.stats import linregress
 from extract_depths import zmidfrommesh
 from pick_from_mesh import *
 from plot_config import *
+from data_config import *
 
 global bad_data, bad_data2, deg2rad, lat_N, runname, runpath, meshpath, vartitle, varname, varmin, varmax, varcmap, surfvar, dvar
 
 def TS_diagram(runlist,year_range,
                placename = '',lat=-9999,lon=-9999,
                z=-9999,zab=False,zall=True,plot_lines=True,
-               seasonal=False,runcmp=False,savepath=savepath_nersc,
+               seasonal=False,runcmp=False,savepath=savepath,
                pyc_polygon = TSpolygon_Hattermann2018_edit):
 
     S_limits = np.array([32.5,35.0])
@@ -186,7 +187,7 @@ def TS_diagram(runlist,year_range,
 
 def z_pycnocline(z,T,S,diags=False,cellidx=0,zmin=-9999,
                  pyc_polygon = TSpolygon_Hattermann2018_edit,
-                 plot_TS = False, savepath=savepath_nersc):
+                 plot_TS = False, savepath=savepath):
 
     TS_polygon = Polygon(pyc_polygon)
     polygon_mask = np.zeros(len(z),dtype=bool)
@@ -273,7 +274,7 @@ def extract_tseries(runlist,varlist,year_range,
                     ztop_pyc = [False],zbottom_pyc = [False],
                     operation = 'mean',
                     overwrite=True, output_filename = '',
-                    savepath=savepath_nersc): 
+                    savepath=savepath): 
 
     if zab:
         m = 'mab'
@@ -447,19 +448,19 @@ def butter_lowpass_filter(data, cutoff, fs, order):
     y = filtfilt(b, a, data)
     return y
 
-def tseries1(runlist,varlist,year_range,
-             placename = [''],lat=-9999,lon=-9999,
-             operation = 'mean', apply_filter = False, cutoff = 0, #region = '',
-             varlim = True,
-             zrange=[-9999,-9999],zab=[False],zeval=[-9999], 
-             velocity_vector=False, tav = 0,
-             ztop_pyc = [False], zbottom_pyc = [False], diff_pyc = [False],
-             reference_run = '', ratio_barotropic = [False], 
-             input_filename = [''], input_filename2 = '', var2 = '',
-             shade_season = False, year_overlay=False,
-             print_to_file = True, create_figure = True,
-             show_obs = False, obs = [-9999,9999],
-             overwrite=False, savepath=savepath_nersc): 
+def tseries1(runlist, varlist, year_range,
+             placename=[''], lat=-9999, lon=-9999,
+             operation='mean', apply_filter=False, cutoff=0, #region = '',
+             varlim=True,
+             zrange=[-9999,-9999], zab=[False], zeval=[-9999], 
+             velocity_vector=False, tav=0,
+             ztop_pyc=[False], zbottom_pyc=[False], diff_pyc=[False],
+             reference_run='', ratio_barotropic=[False], 
+             input_filename=[''], input_filename2='', var2='',
+             shade_season=False, year_overlay=False,
+             print_to_file=True, create_figure=True,
+             show_obs=False, obs=[-9999,9999],
+             overwrite=False, savepath=savepath): 
 
     linestyle = ['-' for i in runlist]
     if zab[0]:
@@ -507,7 +508,7 @@ def tseries1(runlist,varlist,year_range,
     if input_filename[0] == '' and not print_to_file:
         input_filename[0] = filename
 
-    if (not os.path.exists(savepath + input_filename[0] + '.txt') or overwrite) and print_to_file:
+    if (not os.path.exists(f'{savepath}/{input_filename[0]}.txt') or overwrite) and print_to_file:
         print('extracting time series')
         extract_tseries(runlist,varlist,year_range,
                         placename = placename[0], lat=lat,lon=lon,
@@ -518,9 +519,9 @@ def tseries1(runlist,varlist,year_range,
     
     if not create_figure:
         return
-    df = pandas.read_csv(savepath + input_filename[0] + '.txt')
+    df = pandas.read_csv(f'{savepath}/{input_filename[0]}.txt')
     if input_filename2 != '':
-        df2 = pandas.read_csv(savepath + input_filename2 + '.txt')
+        df2 = pandas.read_csv(f'{savepath}/{input_filename2}.txt')
     for i,var in enumerate(varlist):
         if len(varlist) == 1:
             ax = axvar
@@ -539,7 +540,7 @@ def tseries1(runlist,varlist,year_range,
         ymax = -9999.
         for j,run in enumerate(runlist):
             if len(input_filename) > 1:
-                df = pandas.read_csv(savepath + input_filename[j] + '.txt')
+                df = pandas.read_csv(f'{savepath}/{input_filename[j]}.txt')
             times = df['decyear'][:]
             print(run,np.min(times),np.max(times))
             header = '_'+var
@@ -648,7 +649,7 @@ def tseries1(runlist,varlist,year_range,
         ax.set_xlim((year_range)) 
         ax.set(ylabel=yaxislabel)
     
-        plt.legend(loc=legloc,bbox_to_anchor=bboxanchor)
+        plt.legend(loc=legloc, bbox_to_anchor=bboxanchor)
         
     if tav > 0:
         filename = filename + '_tav{:1.03f}'.format(int(tav))
@@ -662,8 +663,8 @@ def tseries1(runlist,varlist,year_range,
         filename = filename + '_diff' + var2
     if show_obs:
         filename = filename + '_obs'
-    print('save tseries figure', savepath + '/' + filename)
-    plt.savefig(savepath + '/' + filename + '.png',bbox_inches='tight')
+    print(f'save tseries figure {savepath}/{filename}.png')
+    plt.savefig(f'{savepath}/{filename}.png', bbox_inches='tight')
     plt.close(fig)
 
     #if velocity_vector:
@@ -718,7 +719,7 @@ def hovmoller(runlist,year_range,
               varlist = ['T','S','rho','u','v'],zlim = [0,-9999],
               limTrue = False, plot_pycnocline = False,
               input_filename = '',
-              savepath = savepath_nersc):
+              savepath=savepath):
 
     if len(runlist) < len(varlist):
         runlist = [runlist[0] for i in varlist]
@@ -883,7 +884,7 @@ def hovmoller(runlist,year_range,
 def profile(runlist,varlist,year_range,
             lat=-9999,lon=-9999,placename = '',
             maxDepth = -500.,mo = 0,
-            savepath=savepath_nersc):
+            savepath=savepath):
 
     varmin[vartitle.index('T')] = -2.2
     varmax[vartitle.index('T')] = 2
@@ -995,7 +996,7 @@ def fluxgate(transect_id, yrrange = [50,51], morange = [1,13],
              run_incr=['ISMF'], runcmp = False, runcmpname='ISMF-noEAIS',
              mode = 'barotropic-baroclinic', overwrite=False, 
              plot_map = False, plot_transect=False, write_depth_values=False, 
-             savepath=savepath_nersc):
+             savepath=savepath):
     
     # import variables from file
     fmesh = netCDF4.Dataset(meshpath[runname.index(run_incr[0])])
@@ -1291,7 +1292,7 @@ def transect(pick_option, yr_incr, mo_incr, varlist,
              overwrite = False, ops = [''],
              zlim = [-9999,-9999],
              save_transect_mean = False,
-             savepath=savepath_nersc,figure_format = 'png'):
+             savepath=savepath,figure_format = 'png'):
     
     if all(ops) == '':
        ops = ['' for i in varlist]
@@ -1569,7 +1570,7 @@ def transect(pick_option, yr_incr, mo_incr, varlist,
 #    locname    name of the location which sets map limits, string
 #    savepath   directory where figure is to be saved, string
 #------------------------------------------------------------------------------
-def plot_zice_map(run = 'ISMF',region = 'fris',savepath=savepath_nersc):
+def plot_zice_map(run = 'ISMF',region = 'fris',savepath=savepath):
 
     # set further parameters
     lat_N = -50 # northern limit of domain
@@ -1628,7 +1629,7 @@ def plot_zice_map(run = 'ISMF',region = 'fris',savepath=savepath_nersc):
 def calc_stresscurl_t(run_list=['ISMF'],year_range=[70,71],
                       region='wedwang',coord='lat',
                       overwrite=False,map_output=False,
-                      savepath=savepath_nersc):
+                      savepath=savepath):
     filename = ''
     for run in run_list:
         filename += run + '_'
@@ -1742,7 +1743,7 @@ def calc_stresscurl_t(run_list=['ISMF'],year_range=[70,71],
     return
 
 def plot_zpyc_corr(filename_zpyc,filename_T,run=['ISMF'],
-                   offset_mo = 0,savepath=savepath_nersc):
+                   offset_mo = 0,savepath=savepath):
     df = pandas.read_csv(savepath + filename_zpyc + '.txt')
     dft = pandas.read_csv(savepath + filename_T + '.txt')
     t = df['decyear'][:]
@@ -1772,7 +1773,7 @@ def plot_zpyc_t(filename,run = ['ISMF'], tlim=[9999.,9999.],
                 placename = [''], plot_T = False, plot_sd = False,
                 plot_difference = False,cutoff = 0., 
                 show_obs = False, obs = [-9999,9999],
-                ls = ['-','--',':-'], savepath=savepath_nersc):
+                ls = ['-','--',':-'], savepath=savepath):
 
     plot_filename = filename[0]
     if len(filename)>1:
@@ -1869,7 +1870,7 @@ def plot_zpyc_t(filename,run = ['ISMF'], tlim=[9999.,9999.],
 # run      list of runnames of same length as filename
 def plot_stresscurl_t(filename,run = ['ISMF'], year_range=[9999.,9999.],
                       region = 'wedwang', plot_difference = False, hist=False, 
-                      savepath=savepath_nersc):
+                      savepath=savepath):
     plot_filename = ''
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -1918,7 +1919,7 @@ def plot_stresscurl_t(filename,run = ['ISMF'], year_range=[9999.,9999.],
 #------------------------------------------------------------------------------
 def plot_fluxgate_t(filename,tlim=[9999.,9999.],run_incr=['ISMF'],#runcmpname='ISMF-noEAIS',
                     mode = 'pos-neg',var_incr = ['pos','neg','total'],
-                    savepath=savepath_nersc):
+                    savepath=savepath):
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -1993,7 +1994,7 @@ def plot_fluxgate_t(filename,tlim=[9999.,9999.],run_incr=['ISMF'],#runcmpname='I
 def pycnocline_depth_t(year_range,run_list =['ISMF'],region = 'wed_pyc_Ryan',
                        idx = [-9999], plot_histogram = False, overwrite = False,
                        zlim = [-9999,-9999], mask_ice = False, write_headings=True,
-                       savepath = savepath_nersc):
+                       savepath = savepath):
 
     fmesh = netCDF4.Dataset(meshpath[runname.index(run_list[0])])
     
@@ -2135,7 +2136,7 @@ def pycnocline_depth_t(year_range,run_list =['ISMF'],region = 'wed_pyc_Ryan',
 def plot_surf_var(var,yr,mo,run=['ISMF'],locname='fris',plottype = 'abs',
                   z=0,zab=False,level=bad_data,
                   varlim=False,overwrite=False,
-                  savepath=savepath_nersc):
+                  savepath=savepath):
 
     if len(run) == 2:
         runcmp = True
