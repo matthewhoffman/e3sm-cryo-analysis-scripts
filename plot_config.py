@@ -24,7 +24,8 @@ deg2rad  = pi/180.
 lat_N = -50 # northern limit of domain
 rho_ice = 917
     
-legloc = 'upper left'
+legloc = 'upper right'
+#legloc = 'upper left'
 bboxanchor = (0.0,-0.25)
 
 #Ryan et al. 2017
@@ -99,8 +100,8 @@ varmin[vartitle.index('z')] = -1800
 varmax[vartitle.index('z')] = -100
 varmin[vartitle.index('T')] = -2.1
 varmax[vartitle.index('T')] = 1.7#-0.5
-varmin[vartitle.index('S')] = 33.5#34.2
-varmax[vartitle.index('S')] = 34.6
+varmin[vartitle.index('S')] = 34.2#33.5
+varmax[vartitle.index('S')] = 34.7#34.6
 varmin[vartitle.index('rho')] = 27.40
 varmax[vartitle.index('rho')] = 27.85
 #varmin[vartitle.index('rho')] = 32.20

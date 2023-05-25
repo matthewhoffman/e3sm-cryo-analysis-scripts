@@ -451,7 +451,7 @@ def butter_lowpass_filter(data, cutoff, fs, order):
 def tseries1(runlist, varlist, year_range,
              placename=[''], lat=-9999, lon=-9999,
              operation='mean', apply_filter=False, cutoff=0, #region = '',
-             varlim=True,
+             varlim=True, show_tipping=False,
              zrange=[-9999,-9999], zab=[False], zeval=[-9999], 
              velocity_vector=False, tav=0,
              ztop_pyc=[False], zbottom_pyc=[False], diff_pyc=[False],
@@ -459,7 +459,7 @@ def tseries1(runlist, varlist, year_range,
              input_filename=[''], input_filename2='', var2='',
              shade_season=False, year_overlay=False,
              print_to_file=True, create_figure=True,
-             show_obs=False, obs=[-9999,9999],
+             show_legend=True, show_obs='', obs=[],
              overwrite=False, savepath=savepath): 
 
     linestyle = ['-' for i in runlist]
@@ -520,6 +520,7 @@ def tseries1(runlist, varlist, year_range,
     if not create_figure:
         return
     df = pandas.read_csv(f'{savepath}/{input_filename[0]}.txt')
+    times = df['decyear'][:]
     if input_filename2 != '':
         df2 = pandas.read_csv(f'{savepath}/{input_filename2}.txt')
     for i,var in enumerate(varlist):
@@ -529,12 +530,13 @@ def tseries1(runlist, varlist, year_range,
             ax = axvar[i]
         if i == nrow-1:
             ax.set(xlabel='Year')
-        if show_obs:
-            #for obs_m in obs:
-                #ax.plot([np.min(times),np.max(times)],[obs_m,obs_m],'--k',lineWidth=lw1)
+        if show_obs=='fill':
             ax.fill([year_range[0],year_range[0],year_range[1],year_range[1]],
                     [obs[0],obs[1],obs[1],obs[0]],facecolor='k',
                     alpha=0.25,linewidth=None)
+        if show_obs=='line':
+            for obs_m in obs:
+                ax.plot([np.min(times),np.max(times)],[obs_m,obs_m],'--k',linewidth=lw1)
         yaxislabel=varlabel[vartitle.index(var)]+', '+region_title[region_name.index(placename[0])]
         ymin = 9999.
         ymax = -9999.
@@ -558,6 +560,7 @@ def tseries1(runlist, varlist, year_range,
                     yaxislabel = r'$\sigma_{DSW} \: - \: \sigma_{DSW,CTRL} \: (kg \: m^{-3})$'
                 else:
                     yaxislabel = r'$\sigma_{DSW} \: (kg \: m^{-3})$'
+            print(f'getting data from {run}{header} in {savepath}/{input_filename[j]})')
             data = df[run+header][:]
             print(run,np.min(data),np.max(data))
             if input_filename2 != '':
@@ -618,12 +621,13 @@ def tseries1(runlist, varlist, year_range,
                              linestyle = linestyle[j],
                              color = run_color[runname.index(run)])
             yl = ax.get_ylim()
-            ax.plot([run_tipping_year[runname.index(run)], 
-                     run_tipping_year[runname.index(run)]], 
-                     #[-100, 2000], 
-                     yl,
-                     ':', color=run_color[runname.index(run)],
-                     lineWidth=lw1)
+            if show_tipping:
+                ax.plot([run_tipping_year[runname.index(run)], 
+                         run_tipping_year[runname.index(run)]], 
+                         #[-100, 2000], 
+                         yl,
+                         ':', color=run_color[runname.index(run)],
+                         linewidth=lw1)
             ax.set_ylim(yl)
         if varlim:
             ylim = [varmin[vartitle.index(var)], varmax[vartitle.index(var)]]
@@ -649,7 +653,9 @@ def tseries1(runlist, varlist, year_range,
         ax.set_xlim((year_range)) 
         ax.set(ylabel=yaxislabel)
     
-        plt.legend(loc=legloc, bbox_to_anchor=bboxanchor)
+        if show_legend:
+            #plt.legend(loc=legloc, bbox_to_anchor=bboxanchor)
+            plt.legend()
         
     if tav > 0:
         filename = filename + '_tav{:1.03f}'.format(int(tav))
@@ -1835,7 +1841,7 @@ def plot_zpyc_t(filename,run = ['ISMF'], tlim=[9999.,9999.],
         ax.set_ylabel(r'$\Delta z_{pyc}$ (m)')
     if show_obs:
         for obs_m in obs:
-            ax.plot([np.min(t),np.max(t)],[obs_m,obs_m],'--k',lineWidth=lw1)
+            ax.plot([np.min(t),np.max(t)],[obs_m,obs_m],'--k',linewidth=lw1)
     
     elif plot_T:
         filename_T = 'ISMF_TS_20mab_76S30W_70-101'
