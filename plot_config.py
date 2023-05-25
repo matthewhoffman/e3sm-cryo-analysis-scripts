@@ -126,6 +126,8 @@ varmin[vartitle.index('u_barotropic')] = -0.0125
 varmax[vartitle.index('u_barotropic')] = 0.0125
 varmin[vartitle.index('u_baroclinic')] = -0.04
 varmax[vartitle.index('u_baroclinic')] = 0.04
+varmin[vartitle.index('F_barotropic')] = -7.0
+varmax[vartitle.index('F_barotropic')] = 0.5
 # choices for off the continental shelf
 #varmin = [-4000,-2, 33.5, 1027.25, -0.03, -0.02, -0.03,-0.003,-0.003,-0.003,-5.]
 #varmax = [-100, 2, 34.9, 1028   ,  0.03,  0.02, 0.03,0.003,0.003,0.003,0.]
