@@ -453,11 +453,11 @@ def tseries1(runlist, varlist, year_range,
              operation='mean', apply_filter=False, cutoff=0, #region = '',
              varlim=True, show_tipping=False,
              zrange=[-9999,-9999], zab=[False], zeval=[-9999], 
-             velocity_vector=False, tav=0,
+             flip_y=False, velocity_vector=False, tav=0,
              ztop_pyc=[False], zbottom_pyc=[False], diff_pyc=[False],
              reference_run='', ratio_barotropic=[False], 
              input_filename=[''], input_filename2='', var2='',
-             shade_season=False, year_overlay=False,
+             shade_season=False, year_overlay=False, year_minmax=False,
              print_to_file=True, create_figure=True,
              show_legend=True, show_obs='', obs=[],
              overwrite=False, savepath=savepath): 
@@ -533,10 +533,10 @@ def tseries1(runlist, varlist, year_range,
         if show_obs=='fill':
             ax.fill([year_range[0],year_range[0],year_range[1],year_range[1]],
                     [obs[0],obs[1],obs[1],obs[0]],facecolor='k',
-                    alpha=0.25,linewidth=None)
+                    alpha=0.25,linewidth=None, label='Observed')
         if show_obs=='line':
-            for obs_m in obs:
-                ax.plot([np.min(times),np.max(times)],[obs_m,obs_m],'--k',linewidth=lw1)
+            ax.plot([np.min(times),np.max(times)],[obs[0],obs[0]],'--k',linewidth=lw1)
+            ax.plot([np.min(times),np.max(times)],[obs[1],obs[1]],'--k',linewidth=lw1, label='Observed')
         yaxislabel=varlabel[vartitle.index(var)]+', '+region_title[region_name.index(placename[0])]
         ymin = 9999.
         ymax = -9999.
@@ -546,7 +546,7 @@ def tseries1(runlist, varlist, year_range,
             times = df['decyear'][:]
             print(run,np.min(times),np.max(times))
             header = '_'+var
-            if zeval != -9999:
+            if zeval[0] != -9999:
                 header = header + '_z' + str(int(zeval[0]))
             if ztop_pyc[i]:
                 header = header + '_abovepyc'
@@ -652,10 +652,10 @@ def tseries1(runlist, varlist, year_range,
                                       linewidth=0)
         ax.set_xlim((year_range)) 
         ax.set(ylabel=yaxislabel)
-    
+        if flip_y:
+            ax.invert_yaxis() 
         if show_legend:
-            #plt.legend(loc=legloc, bbox_to_anchor=bboxanchor)
-            plt.legend()
+            plt.legend(loc=legloc, frameon=False)#bbox_to_anchor=bboxanchor)
         
     if tav > 0:
         filename = filename + '_tav{:1.03f}'.format(int(tav))
