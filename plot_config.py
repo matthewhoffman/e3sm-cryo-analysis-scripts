@@ -26,7 +26,7 @@ rho_ice = 917
     
 legloc = 'upper right'
 #legloc = 'upper left'
-bboxanchor = (0.0,-0.25)
+bboxanchor = (1.0,0.75)
 
 #Ryan et al. 2017
 season = ['summer','fall','winter','spring'] 
@@ -102,10 +102,8 @@ varmin[vartitle.index('T')] = -2.1
 varmax[vartitle.index('T')] = 1.7#-0.5
 varmin[vartitle.index('S')] = 34.2#33.5
 varmax[vartitle.index('S')] = 34.7#34.6
-varmin[vartitle.index('rho')] = 27.40
-varmax[vartitle.index('rho')] = 27.85
-#varmin[vartitle.index('rho')] = 32.20
-#varmax[vartitle.index('rho')] = 32.60
+varmin[vartitle.index('rho')] = 27.28
+varmax[vartitle.index('rho')] = 27.78
 varmin[vartitle.index('u')] = -0.04
 varmax[vartitle.index('u')] =  0.04
 varmin[vartitle.index('v')] = -0.04
