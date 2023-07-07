@@ -35,12 +35,12 @@ wed.tseries1(run_list, ['T'], year_range=year_range,
              input_filename=input_filename,
              placename=placename, zeval=zeval, zab=zab,
              print_to_file=False, create_figure=True,
-             show_obs='line', obs=M31W_T_obs,
+             show_obs='fill', obs=M31W_T_obs,
              year_overlay=False, overwrite=False)
 
-#wed.tseries1(run_list, ['S'], year_range=year_range,
-#             input_filename=input_filename,
-#             placename=placename, zeval=zeval, zab=zab,
-#             print_to_file=False, create_figure=True,
-#             show_legend=False, show_obs='line', obs=M31W_S_obs,
-#             year_overlay=False, overwrite=False)
+wed.tseries1(run_list, ['S'], year_range=year_range,
+             input_filename=input_filename,
+             placename=placename, zeval=zeval, zab=zab,
+             print_to_file=False, create_figure=True,
+             show_legend=False, show_obs='fill', obs=M31W_S_obs,
+             year_overlay=False, overwrite=False)
