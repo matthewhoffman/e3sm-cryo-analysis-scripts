@@ -45,6 +45,7 @@ for i in region_name:
     region_zbounds[region_name.index(i)] = [-9999.,20.]
 
 region_title[region_name.index('EAcoast')] = 'Eastern Weddell Ice Shelves'
+region_title[region_name.index('wedwang_c')] = 'Weddell Gyre'
 region_title[region_name.index('wed_pyc_west')] = 'Eastern Weddell Shelf'
 region_title[region_name.index('wed_pyc_Ryan_shelf')] = 'on-shelf'
 region_title[region_name.index('wed_pyc_Ryan_shallow')] = 'on-shelf'
