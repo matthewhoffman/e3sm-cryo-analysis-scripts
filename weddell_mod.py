@@ -460,9 +460,10 @@ def tseries1(runlist, varlist, year_range,
              shade_season=False, year_overlay=False, year_minmax=False,
              print_to_file=True, create_figure=True,
              show_legend=True, show_obs='', obs=[],
-             overwrite=False, savepath=savepath): 
+             linestyle=None, overwrite=False, savepath=savepath): 
 
-    linestyle = ['-' for i in runlist]
+    if linestyle == None:
+        linestyle = ['-' for i in runlist]
     if zab[0]:
         m = 'mab'
     else:
@@ -476,10 +477,10 @@ def tseries1(runlist, varlist, year_range,
         zab = [zab[0] for i in varlist]
     if len(zeval)<len(varlist):
         zeval = [zeval[0] for i in varlist]
-    if len(ztop_pyc)<len(varlist):
-        ztop_pyc = [False for i in varlist]
-    if len(zbottom_pyc)<len(varlist):
-        zbottom_pyc = [False for i in varlist]
+    if len(ztop_pyc)<len(runlist):
+        ztop_pyc = [False for i in runlist]
+    if len(zbottom_pyc)<len(runlist):
+        zbottom_pyc = [False for i in runlist]
     if len(diff_pyc)<len(varlist):
         diff_pyc = [False for i in varlist]
     if len(ratio_barotropic)<len(varlist):
@@ -535,31 +536,35 @@ def tseries1(runlist, varlist, year_range,
                     [obs[0],obs[1],obs[1],obs[0]],facecolor='k',
                     alpha=0.25,linewidth=None, label='Observed')
         if show_obs=='line':
-            ax.plot([np.min(times),np.max(times)],[obs[0],obs[0]],'--k',linewidth=lw1)
-            ax.plot([np.min(times),np.max(times)],[obs[1],obs[1]],'--k',linewidth=lw1, label='Observed')
-        yaxislabel=varlabel[vartitle.index(var)]+', '+region_title[region_name.index(placename[0])]
+            ax.plot([np.min(years),np.max(years)],[obs[0],obs[0]],'--k',linewidth=lw1)
+            ax.plot([np.min(years),np.max(years)],[obs[1],obs[1]],'--k',linewidth=lw1, label='Wang et al. (2012)')
+        yaxislabel=varlabel[vartitle.index(var)]
+        #yaxislabel = yaxislabel +', '+region_title[region_name.index(placename[0])]
         ymin = 9999.
         ymax = -9999.
         for j,run in enumerate(runlist):
             if len(input_filename) > 1:
                 df = pandas.read_csv(f'{savepath}/{input_filename[j]}.txt')
             times = df['decyear'][:]
-            print(run,np.min(times),np.max(times))
             header = '_'+var
             if zeval[0] != -9999:
                 header = header + '_z' + str(int(zeval[0]))
-            if ztop_pyc[i]:
+            if ztop_pyc[j]:
                 header = header + '_abovepyc'
+                rholabel=r'$\sigma_{AASW}$'
                 if reference_run != '':
-                    yaxislabel = r'$\sigma_{ASW} \: - \: \sigma_{ASW,CTRL} \: (kg \: m^{-3})$'
+                    yaxislabel = r'$\sigma_{AASW} \: - \: \sigma_{AASW,CTRL} \: (kg \: m^{-3})$'
                 else:
-                    yaxislabel = r'$\sigma_{ASW} \: (kg \: m^{-3})$'
-            if zbottom_pyc[i]:
+                    yaxislabel = r'$\sigma_{AASW} \: (kg \: m^{-3})$'
+            if zbottom_pyc[j]:
                 header = header + '_belowpyc'
+                rholabel=r'$\sigma_{DSW}$'
                 if reference_run != '':
                     yaxislabel = r'$\sigma_{DSW} \: - \: \sigma_{DSW,CTRL} \: (kg \: m^{-3})$'
                 else:
                     yaxislabel = r'$\sigma_{DSW} \: (kg \: m^{-3})$'
+            if any(zbottom_pyc) and any(ztop_pyc):
+                yaxislabel = r'$\sigma \: (kg \: m^{-3})$'
             print(f'getting data from {run}{header} in {savepath}/{input_filename[j]})')
             data = df[run+header][:]
             print(run,np.min(data),np.max(data))
@@ -576,8 +581,25 @@ def tseries1(runlist, varlist, year_range,
                 data2 = df[run+'_F_barotropic'][:]
                 data = np.divide(data,np.abs(data2))
                 yaxislabel = r'Baroclinic flux:Barotropic flux'
+            if var == 'rho':
+                data = np.subtract(data, 1000)
             #else:
             #    yaxislabel = varlabel[vartitle.index(var)]
+            if year_minmax:
+                data_min = np.zeros((len(years)))
+                data_max = np.zeros((len(years)))
+                for idx, yr in enumerate(years):
+                    idx_time = (times>=yr) * (times < yr+1)
+                    data_min[idx] = np.min(data[idx_time])
+                    data_max[idx] = np.max(data[idx_time])
+                ax.fill_between(years, data_min, y2=data_max, facecolor=run_color[runname.index(run)], alpha=0.2)
+                #data_min = data.copy()
+                #data_max = data.copy()
+                #for idx in range(len(times)):
+                #    data_min[idx] = np.min(data[max(0, idx - 6):min(len(times)-1, idx + 6)])
+                #    data_max[idx] = np.max(data[max(0, idx - 6):min(len(times)-1, idx + 6)])
+                #    #print(f'min,max between {max(0, idx - 6)},{min(len(times)-1, idx + 6)} = {data_min[idx]},{data_min[idx]}')
+                #ax.fill_between(times, data_min, y2=data_max, facecolor=run_color[runname.index(run)], alpha=0.5)
             if apply_filter:
                 fs = 12 # sampling frequency in 1/years
                 order = 4
@@ -616,7 +638,8 @@ def tseries1(runlist, varlist, year_range,
                     #             color = run_color[runname.index(run)])
                 else:
                     pc = ax.plot(times,data,
-                             label = runtitle[runname.index(run)],
+                             #label = fr'{runtitle[runname.index(run)]}, {rholabel}',
+                             label = fr'{runtitle[runname.index(run)]}',
                              linewidth = lw1,
                              linestyle = linestyle[j],
                              color = run_color[runname.index(run)])
@@ -650,17 +673,23 @@ def tseries1(runlist, varlist, year_range,
                                       [ylim[0],ylim[1],ylim[1],ylim[0]],
                                       facecolor=season_color[s], alpha=0.5, 
                                       linewidth=0)
+        if not varlim:
+            ax.autoscale()
         ax.set_xlim((year_range)) 
         ax.set(ylabel=yaxislabel)
         if flip_y:
             ax.invert_yaxis() 
+        plt.tight_layout()
         if show_legend:
-            plt.legend(loc=legloc, frameon=False)#bbox_to_anchor=bboxanchor)
+            #plt.legend(loc=legloc, frameon=False, bbox_to_anchor=bboxanchor)
+            plt.legend(loc=legloc, frameon=False)
         
     if tav > 0:
         filename = filename + '_tav{:1.03f}'.format(int(tav))
     if apply_filter:
-        filename = filename + '_filter{:1.03f}'.format(int(cutoff))
+        filename = filename + '_filter{:1.03f}'.format(cutoff)
+    if year_minmax:
+        filename = filename + '_yearminmax'
     if year_overlay:
         filename = filename + '_yearoverlay'
     if reference_run != '':
