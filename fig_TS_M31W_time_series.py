@@ -18,7 +18,7 @@ from data_config import runname
 
 run_list = runname
 placename = ['M31W']
-year_range = [0, 200]
+year_range = [10, 200]
 input_filename = ['CGM-UIB_T_S_M31W_z20.000000mab_t000-200',
                  'ISMF_ISMF-3dGM_T_S_M31W_z20mab_t001-200',
                  'ISMF_ISMF-3dGM_T_S_M31W_z20mab_t001-200']

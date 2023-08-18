@@ -7,7 +7,8 @@ Created on Tue May  7 13:56:52 2019
 """
 
 import sys
-sys.path.append('/global/homes/c/cbegeman/e3sm-cryo-analysis-scripts/great_circle_calculator')
+sys.path.append('/home/ac.cbegeman/e3sm-cryo-analysis-scripts/great_circle_calculator')
+#sys.path.append('/global/homes/c/cbegeman/e3sm-cryo-analysis-scripts/great_circle_calculator')
 import os
 import csv
 import netCDF4
@@ -118,7 +119,7 @@ def pick_point(lat=-9999,lon=-9999,
 #    edgeidx
 #    dist:  distance between each cell center and the cell center of the first cell
 #    angle: mean orientation of transect from left to right
-def pick_transect(option='coord',lat=[-76,-76],lon=[360-32,360-32],run='ISMF',
+def pick_transect(option='coord', lat=[-76, -76], lon=[360-32, 360-32], run='CGM-UIB',
                   vartype='velocity',transect_name='',scope_name = 'frisEAcoast',
                   overwrite=False, savepath=savepath,append=False):
     

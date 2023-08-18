@@ -7,14 +7,12 @@ Created on Tue May  7 13:56:52 2019
 """
 
 import sys
-sys.path.append('/global/homes/c/cbegeman/e3sm-cryo-analysis-scripts/great_circle_calculator')
 import os
 import csv
 import gsw
 import netCDF4
 import cartopy
 import pyproj
-import great_circle_calculator.great_circle_calculator as great_circle#import LatLon
 import numpy as np
 import numpy.ma as ma 
 import cmocean
@@ -533,8 +531,8 @@ def tseries1(runlist, varlist, year_range,
             ax.set(xlabel='Year')
         if show_obs=='fill':
             ax.fill([year_range[0],year_range[0],year_range[1],year_range[1]],
-                    [obs[0],obs[1],obs[1],obs[0]],facecolor='k',
-                    alpha=0.25,linewidth=None, label='Observed')
+                    [obs[0],obs[1],obs[1],obs[0]], facecolor='lightblue',
+                    alpha=0.25, linewidth=None, label='Observed')
         if show_obs=='line':
             ax.plot([np.min(years),np.max(years)],[obs[0],obs[0]],'--k',linewidth=lw1)
             ax.plot([np.min(years),np.max(years)],[obs[1],obs[1]],'--k',linewidth=lw1, label='Wang et al. (2012)')
@@ -1317,17 +1315,18 @@ def fluxgate(transect_id, yrrange = [50,51], morange = [1,13],
 #   savepath  path to save plot images
 #----------------------------------------------------------------------
 def transect(pick_option, yr_incr, mo_incr, varlist, 
-             var_contour = '',cntr_levels = [-9999],
-             transect_name = '',plot_transect=False,
-             ISW_contour = False, zpyc_contour = False, 
-             plot_method = 'tricontourf',
+             var_contour='', cntr_levels=[-9999],
+             transect_name='', plot_transect_on_map=False,
+             ISW_contour=False, zpyc_contour=False, 
+             plot_method='tricontourf',
              lat=[latmin,latmax],lon=[lonmin,lonmax], 
-             varlim = 'config', normal = False, zscale = 'linear', 
-             run='ISMF', runcmp = False, runcmpname = 'ISMF-noEAIS',
-             overwrite = False, ops = [''],
-             zlim = [-9999,-9999],
-             save_transect_mean = False,
-             savepath=savepath,figure_format = 'png'):
+             year_range=[], month_range=[],
+             varlim='config', normal=False, zscale='linear', 
+             run='ISMF', runcmp=False, runcmpname='ISMF-noEAIS',
+             overwrite=False, ops=[''],
+             zlim=[-9999,-9999],
+             save_transect_mean=False,
+             savepath=savepath, figure_format='png'):
     
     if all(ops) == '':
        ops = ['' for i in varlist]
@@ -1338,7 +1337,7 @@ def transect(pick_option, yr_incr, mo_incr, varlist,
                                        lat = lat, lon = lon, 
                                        vartype = 'scalar',
                                        transect_name = transect_name,
-                                       overwrite = plot_transect) 
+                                       overwrite = plot_transect_on_map) 
     dist = np.divide(dist,1e3) 
     kmax     = fmesh.variables['maxLevelCell'][cellidx]
     zmax     = np.multiply(-1,fmesh.variables['bottomDepth'][cellidx])
@@ -1363,12 +1362,12 @@ def transect(pick_option, yr_incr, mo_incr, varlist,
     _,ymesh  = np.meshgrid(zmesh[0,:], dist)
 
     # TODO only used for plotting, ignore if not plotting 
-    yfill = np.append(dist[0],dist)
-    yfill = np.append(yfill,dist[-1])
-    bathyfill = np.append(bathymax,zmax)
-    bathyfill = np.append(bathyfill,bathymax)
+    yfill = np.append(dist[0], dist)
+    yfill = np.append(yfill, dist[-1])
+    bathyfill = np.append(bathymax, zmax)
+    bathyfill = np.append(bathyfill, bathymax)
     if var_contour == 'rho':
-        cntr_levels = np.subtract(cntr_levels,1000) 
+        cntr_levels = np.subtract(cntr_levels, 1000) 
     for yr in yr_incr:
         for mo in mo_incr:
             datestr = '{0:04d}-{1:02d}'.format(yr, mo)
@@ -1383,61 +1382,47 @@ def transect(pick_option, yr_incr, mo_incr, varlist,
                 f2 = netCDF4.Dataset(filename, 'r')
 
             
-            ssh      = f.variables['timeMonthly_avg_ssh'][0,cellidx]
-            sshfill = np.append(0,np.minimum(ssh,zice))
-            sshfill = np.append(sshfill,0)
+            ssh      = f.variables['timeMonthly_avg_ssh'][0, cellidx]
+            sshfill = np.append(0,np.minimum(ssh, zice))
+            sshfill = np.append(sshfill, 0)
             
             for var in varlist:
-                image_filename = savepath + run
+                image_filename = f'{savepath}/{run}'
                 if runcmp:
-                    image_filename = image_filename + '_cmp'
-                image_filename = image_filename + '_' + var 
+                    image_filename = f'{image_filename}_cmp'
+                image_filename = f'{image_filename}_{var}' 
                 if var == 'u' and normal :
-                   image_filename = image_filename + 'normal' 
-                image_filename = ( image_filename + 
-                                   ops[varlist.index(var)] + var_contour + 
-                                   '_' + transect_name + '_' + datestr )
+                   image_filename = f'{image_filename}normal' 
+                image_filename = f'{image_filename}{ops[varlist.index(var)]}'\
+                                 f'{var_contour}_{transect_name}_{datestr}'
                 #image_filename = image_filename + '_lim' + str(varlim) 
                 if zpyc_contour:
-                    image_filename = image_filename + '_zpyc'
+                    image_filename = f'{image_filename}_zpyc'
 
                 if not overwrite and os.path.exists(image_filename + '.' + figure_format):
                     print(image_filename + ' exists')
                     continue
                 
-                data_import = f.variables[varname[vartitle.index(var)]][0,cellidx,:]
-                if var_contour != '':
-                    if var_contour == 'sigma1':
-                        cntr_import = (gsw.sigma1(f.variables[varname[vartitle.index('S')]][0,cellidx,:],
-                                                  f.variables[varname[vartitle.index('T')]][0,cellidx,:]))
-                    else:
-                        cntr_import = f.variables[varname[vartitle.index(var_contour)]][0,cellidx,:]
-                    cntr_data = np.zeros((np.shape(zmesh)))
-                    cntr_data[:,1:-1] = cntr_import
-                    cntr_data[:,-1] = cntr_data[:,-2]
-                    cntr_data[:,0] = cntr_data[:,1]
-                    # for interpolation, add the variable assigned at bottomDepth
-                    for idx,i in enumerate(cellidx):
-                       cntr_data[idx,kmax[idx]+1] = cntr_import[idx,kmax[idx]]
+                data_import = f.variables[varname[vartitle.index(var)]][0, cellidx, :]
                     
                 # convert velocity to the normal velocity
                 if var == 'u' and normal:
                     u = data_import
-                    v = f.variables[varname[vartitle.index('v')]][0,cellidx,:]
+                    v = f.variables[varname[vartitle.index('v')]][0, cellidx, :]
                     u_angle = np.arctan2(v,u)
                     transect_angle_normal = np.add(angle, pi/2)
-                    u_norm = np.sqrt(np.add(np.square(u),np.square(v)))
-                    data_import = np.multiply(u_norm, 
-                                       np.cos(np.subtract(u_angle,
-                                              transect_angle_normal)))
+                    u_norm = np.sqrt(np.add(np.square(u), np.square(v)))
+                    data_import = np.multiply(u_norm,
+                                              np.cos(np.subtract(u_angle,
+                                                     transect_angle_normal)))
                 
                 #TODO, test
                 if runcmp: 
                     if var == 'u' and normal:
                         print('normal velocity plot not yet compatible with difference between runs')
                         return
-                    data2 = f2.variables[varname[vartitle.index(var)]][0,cellidx,:]
-                    data_import = np.subtract(data_import,data2)
+                    data2 = f2.variables[varname[vartitle.index(var)]][0, cellidx, :]
+                    data_import = np.subtract(data_import, data2)
                 
                 # TODO revise and test 
                 #if ops[varlist.index(var)] == 'barotropic':
@@ -1458,12 +1443,54 @@ def transect(pick_option, yr_incr, mo_incr, varlist,
                     print('Reference pot density to 1000 db')
                     #P = float(ops[varlist.index(var)][:-2])
                     #_,depths = np.shape(zmesh)
-                    data_import = (gsw.sigma1(f.variables[varname[vartitle.index('S')]][0,cellidx,:],
-                                              f.variables[varname[vartitle.index('T')]][0,cellidx,:]))
+                    data_import = (gsw.sigma1(f.variables[varname[vartitle.index('S')]][0, cellidx, :],
+                                              f.variables[varname[vartitle.index('T')]][0, cellidx, :]))
                     #for idx,i in enumerate(cellidx):
                     #    data_import[idx,:] = (gsw.sigma1(f.variables[varname[vartitle.index('S')]][0,idx,:],
                     #                                     f.variables[varname[vartitle.index('T')]][0,idx,:]))
+                #TODO
+                if ops[varlist.index(var)] == 'time_mean':
+                    data_import = np.multiply(data_import, 0.)
+                    cntr_import = data_import
+                    month_count = 0
+                    for yr in year_range:
+                        for mo in month_range:
+                            datestr = '{0:04d}-{1:02d}'.format(yr, mo)
+                            filename = ('{0}/mpaso.hist.am.timeSeriesStatsMonthly.'
+                                        .format(runpath[runname.index(run)]) 
+                                        + datestr + '-01.nc')
+                            f = netCDF4.Dataset(filename, 'r')
+                            if var_contour != '':
+                                if var_contour == 'sigma1':
+                                    cntr_import = np.add(cntr_import,
+                                                         gsw.sigma1(f.variables[varname[vartitle.index('S')]][0, cellidx, :],
+                                                                    f.variables[varname[vartitle.index('T')]][0, cellidx, :]))
+                                else:
+                                    cntr_import = np.add(cntr_import,
+                                                         f.variables[varname[vartitle.index(var_contour)]][0, cellidx, :])
+                            data_import = np.add(data_import,
+                                                 f.variables[varname[vartitle.index(var)]][0, cellidx, :])
+                            month_count += 1
+                    data_import = np.divide(data_import, month_count)
+                    cntr_import = np.divide(cntr_import, month_count)
+                elif var_contour != '':
+                    if var_contour == 'sigma1':
+                        cntr_import = (gsw.sigma1(f.variables[varname[vartitle.index('S')]][0, cellidx, :],
+                                                  f.variables[varname[vartitle.index('T')]][0, cellidx, :]))
+                    else:
+                        cntr_import = f.variables[varname[vartitle.index(var_contour)]][0, cellidx, :]
+                if var_contour != '':
+                    cntr_data = np.zeros((np.shape(zmesh)))
+                    cntr_data[:, 1:-1] = cntr_import
+                    cntr_data[:, -1] = cntr_data[:, -2]
+                    cntr_data[:, 0] = cntr_data[:, 1]
+                    # for interpolation, add the variable assigned at bottomDepth
+                    for idx,i in enumerate(cellidx):
+                       cntr_data[idx, kmax[idx]+1] = cntr_import[idx, kmax[idx]]
                 
+                if var == 'rho' and ops[varlist.index(var)] != 'sigma1':
+                    data_import = np.subtract(data_import, 1000)
+
                 data = np.zeros((np.shape(zmesh)))
                 if plot_method == 'tricontourf':
                     data[:,1:-1] = data_import
@@ -1471,38 +1498,36 @@ def transect(pick_option, yr_incr, mo_incr, varlist,
                     data[:,0] = data[:,1]
                     # for interpolation, add the variable assigned at bottomDepth
                     for idx,i in enumerate(cellidx):
-                       data[idx,kmax[idx]+1] = data_import[idx,kmax[idx]]
+                       data[idx, kmax[idx]+1] = data_import[idx, kmax[idx]]
                 if plot_method == 'pcolormesh':
-                    data[:,1:] = data_import
-                    data[:,0] = data[:,1]
-                if var == 'rho' and ops[varlist.index(var)] != 'sigma1':
-                   data = np.subtract(data,1000) 
+                    data[:, 1:] = data_import
+                    data[:, 0] = data[:, 1]
                 
                 mask = np.zeros((np.shape(zmesh)),dtype=bool)
                 for idx,i in enumerate(cellidx):
-                    mask[idx,:] = ( (zmesh[idx,:] > zice[idx]) | 
-                                    (zmesh[idx,:] < zmax[idx]) |
-                                    (data[idx,:] < bad_data) | 
-                                    np.isnan(data[idx,:]) )
-                    mask[idx,kmax[idx]+1:] = True
+                    mask[idx,:] = ( (zmesh[idx, :] > zice[idx]) | 
+                                    (zmesh[idx, :] < zmax[idx]) |
+                                    (data[idx, :] < bad_data) | 
+                                    np.isnan(data[idx, :]) )
+                    mask[idx, kmax[idx]+1:] = True
                 if var_contour != '':
                     if var_contour == 'rho':
                        cntr_data[cntr_data==0] = nan
-                       cntr_data = np.subtract(cntr_data,1000) 
+                       cntr_data = np.subtract(cntr_data, 1000)
                     cntr_data_masked  = cntr_data[~mask]
                 zmesh_masked = zmesh[~mask]
                 ymesh_masked = ymesh[~mask]
                
                 data_masked  = data[~mask]
                 if zpyc_contour:
-                    T = f.variables[varname[vartitle.index('T')]][0,cellidx,:]
-                    S = f.variables[varname[vartitle.index('S')]][0,cellidx,:]
+                    T = f.variables[varname[vartitle.index('T')]][0, cellidx, :]
+                    S = f.variables[varname[vartitle.index('S')]][0, cellidx, :]
                     zpyc = np.zeros((len(cellidx)))
                     for i,j in enumerate(cellidx):
-                        zpyc[i] = z_pycnocline(zmid[i,:kmax[i]],
-                                               T   [i,:kmax[i]],
-                                               S   [i,:kmax[i]],
-                                               zmin = -500.,cellidx=j)#,diags=True)
+                        zpyc[i] = z_pycnocline(zmid[i, :kmax[i]],
+                                               T   [i, :kmax[i]],
+                                               S   [i, :kmax[i]],
+                                               zmin=-500., cellidx=j)#,diags=True)
                 # plots
                 
                 clevels = np.arange(varmin[vartitle.index(var)], 
@@ -1514,10 +1539,10 @@ def transect(pick_option, yr_incr, mo_incr, varlist,
                     clevels = np.append(clevels,np.max(data_masked.flatten()))
                 
                 if varlim == 'percentile':
-                    cNorm = Normalize(vmin=np.percentile(data_masked,10),
-                                      vmax=np.percentile(data_masked,90))
+                    cNorm = Normalize(vmin=np.percentile(data_masked, 10),
+                                      vmax=np.percentile(data_masked, 90))
                 else:
-                    cNorm  = Normalize(vmin=varmin[vartitle.index(var)], 
+                    cNorm  = Normalize(vmin=varmin[vartitle.index(var)],
                                        vmax=varmax[vartitle.index(var)])
                 
                 if runcmp:
@@ -1539,6 +1564,8 @@ def transect(pick_option, yr_incr, mo_incr, varlist,
                                             np.transpose(
                                                data_masked.flatten()), 
                                             levels=clevels,
+                                            vmin=varmin[vartitle.index(var)],
+                                            vmax=varmax[vartitle.index(var)],
                                             cmap=cmap1, norm=cNorm)
                 # TODO pcolormesh not ready yet
                 elif plot_method == 'pcolormesh':

@@ -1,5 +1,5 @@
-axes.formatter.limits   : -3,3
-axes.formatter.min_exponent : 3 
+axes.formatter.limits   : -4,4
+axes.formatter.min_exponent : 4 
 axes.formatter.useoffset : True
 axes.formatter.offset_threshold : 4 
 axes.labelsize : 14
