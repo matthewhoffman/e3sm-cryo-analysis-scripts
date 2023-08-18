@@ -1296,23 +1296,26 @@ def fluxgate(transect_id, yrrange = [50,51], morange = [1,13],
 # -- if runcmp, plot difference in two fields
 #
 # Inputs:
-#   pick_option  'by_index'
-#   latS      latitude range, always in Southern Hem, positive, 
-#             vector of length 2, real 
-#   lonW      longitude range, always in Western Hem, positive,
-#             vector of length 2, real 
+#   pick_option  method to use for extracting transect: 'by_index' or 'coord'
+#   yr_incr      list of years to plot in separate figs. Not used if ops='time_mean'
+#   mo_incr      list of months to plot in separate figs. If 0 then plot all months of data
 #   varlist   variables to plot, list of strings
-#   yr        lower limit on simulated year to plot, real
-#   mo        month to plot data from, if 0 then plot all months of data
 
 # optional variables:
-#   varlim
-#   zscale    scale of depth axis
-#   run       runname, string 
-#   runcmp    if true, plot difference between variables of both entries in runname
-#   new       
-#   ops       operations to perform on variables in varlist
+#   var_contour variable name that will be use to plot contours
+#   cntr_levels list of var_contour values at which to plot contours
+#   lat       list of length 2 containing transect endpoints
+#   lon       list of length 2 containing transect endpoints
+#   varlim    'percentile' or 'config'. 'percentile' is computed from the variable; 
+#             'config' is derived from plot_config
+#   zscale    scale of depth axis, 'linear' or 'log'
+#   run       name of the run, string. Must be specified in data_config
+#   runcmp    if true, plot difference between variables in run and runcmpname
+#   runcmpname name of the run to compare with, string. Must be specified in data_config
+#   ops       operations to perform on variables in varlist. Must be of length varlist.
 #   savepath  path to save plot images
+#   year_range range of years to perform time_mean on
+#   month_range range of months to perform time_mean on
 #----------------------------------------------------------------------
 def transect(pick_option, yr_incr, mo_incr, varlist, 
              var_contour='', cntr_levels=[-9999],

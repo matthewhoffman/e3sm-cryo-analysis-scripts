@@ -14,6 +14,6 @@ for run in ['CGM-DIB', 'VGM-DIB']:
                  run=run, transect_name='trough_crossshelf',
                  year_range=np.arange(191,201,1),
                  month_range=np.arange(1,13,1),
-                 ops=['time_mean','time_mean','time_mean'], overwrite=True, 
+                 ops=['time_mean'], overwrite=True, 
                  var_contour='sigma1', cntr_levels=sigma_levels,
                  zlim=[5,-1e3])
