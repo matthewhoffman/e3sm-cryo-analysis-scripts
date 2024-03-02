@@ -920,7 +920,7 @@ def profile(runlist,varlist,year_range,
             savepath=savepath):
 
     varmin[vartitle.index('T')] = -2.2
-    varmax[vartitle.index('T')] = 2
+    varmax[vartitle.index('T')] = 1
     varmin[vartitle.index('S')] = 32.8
     varmax[vartitle.index('S')] = 34.8
     varmin[vartitle.index('rho')] = 1026.7
@@ -1319,6 +1319,7 @@ def fluxgate(transect_id, yrrange = [50,51], morange = [1,13],
 #----------------------------------------------------------------------
 def transect(pick_option, yr_incr, mo_incr, varlist, 
              var_contour='', cntr_levels=[-9999],
+             cntr_label_levels=None,
              transect_name='', plot_transect_on_map=False,
              ISW_contour=False, zpyc_contour=False, 
              plot_method='tricontourf',
@@ -1536,10 +1537,10 @@ def transect(pick_option, yr_incr, mo_incr, varlist,
                 clevels = np.arange(varmin[vartitle.index(var)], 
                                     varmax[vartitle.index(var)],
                                     dvar[vartitle.index(var)]   )
-                if clevels[0] > np.min(data_masked.flatten()):
-                    clevels = np.append(np.min(data_masked.flatten()),clevels)
-                if clevels[-1] < np.max(data_masked.flatten()):
-                    clevels = np.append(clevels,np.max(data_masked.flatten()))
+                #if clevels[0] > np.min(data_masked.flatten()):
+                #    clevels = np.append(np.min(data_masked.flatten()),clevels)
+                #if clevels[-1] < np.max(data_masked.flatten()):
+                #    clevels = np.append(clevels,np.max(data_masked.flatten()))
                 
                 if varlim == 'percentile':
                     cNorm = Normalize(vmin=np.percentile(data_masked, 10),
@@ -1557,10 +1558,11 @@ def transect(pick_option, yr_incr, mo_incr, varlist,
                 scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cmap1)
                 #scalarMap = cmx.ScalarMappable(cmap=cmap1)
                 
-                fig = plt.figure()
+                fig = plt.figure(figsize=(7, 5))
                 ax = plt.gca()
                 
                 if plot_method == 'tricontourf':
+                    print(f'vmin/max={varmin[vartitle.index(var)]}  {varmax[vartitle.index(var)]}')
                     cntr2 = plt.tricontourf(np.transpose(ymesh_masked.flatten()), 
                                             np.transpose(
                                                np.abs(zmesh_masked.flatten())), 
@@ -1569,7 +1571,8 @@ def transect(pick_option, yr_incr, mo_incr, varlist,
                                             levels=clevels,
                                             vmin=varmin[vartitle.index(var)],
                                             vmax=varmax[vartitle.index(var)],
-                                            cmap=cmap1, norm=cNorm)
+                                            cmap=cmap1, norm=cNorm,
+                                            extend='both')
                 # TODO pcolormesh not ready yet
                 elif plot_method == 'pcolormesh':
                     pc = plt.pcolormesh(yymesh, zzmesh, 
@@ -1582,7 +1585,15 @@ def transect(pick_option, yr_incr, mo_incr, varlist,
                                         np.transpose(
                                            cntr_data), 
                                         colors='k',levels=cntr_levels)
-                    plt.clabel(cntr1,inline=1,fontsize=fs,fmt='%1.2f')
+                    if cntr_label_levels is None:
+                        cntr_label_levels_use = cntr_levels
+                    else:
+                        cntr_label_levels_use = np.zeros_like(cntr_label_levels)
+                        for ll in range(len(cntr_label_levels)):
+                            cntr_label_levels_use[ll] = cntr_levels[np.argmin(np.absolute(cntr_levels - cntr_label_levels[ll]))]
+
+                    print(cntr_label_levels, cntr_label_levels_use)
+                    plt.clabel(cntr1, levels=cntr_label_levels_use, inline=1,fontsize=fs,fmt='%1.2f')
                 if ISW_contour:
                     # for interpolation, add the variable assigned at bottomDepth
                     for idx,i in enumerate(cellidx):
@@ -1624,6 +1635,8 @@ def transect(pick_option, yr_incr, mo_incr, varlist,
                 plt.savefig(image_filename+'.'+figure_format,dpi=set_dpi)
                 print(image_filename) 
                 plt.close()
+
+                return fig
 
 #------------------------------------------------------------------------------
 # PLOT_MESH_VAR 

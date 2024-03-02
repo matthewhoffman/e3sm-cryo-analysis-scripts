@@ -7,7 +7,7 @@ Created on Tue May  7 13:56:52 2019
 """
 
 runname = ['CGM-UIB', 'CGM-DIB', 'VGM-DIB']
-savepath = '/lcrc/group/e3sm/ac.cbegeman/scratch/e3sm_fris_analysis'
+savepath = '/lcrc/group/e3sm/ac.mhoffman/scratch/e3sm_fris_analysis/'
 obspath = '/lcrc/group/acme/diagnostics/observations'
 processedpath = '/lcrc/group/e3sm/ac.cbegeman/scratch/E3SM-analysis/weddell-fris-bugfix'
 runpath = ['/lcrc/group/acme/ac.mhoffman/acme_scratch/anvil/20191003.GMPAS-IAF-ISMF.T62_oEC60to30v3wLI.cori-knl/archive/ocn/hist',
