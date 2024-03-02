@@ -7,7 +7,8 @@ Created on Tue May  7 13:56:52 2019
 """
 
 import sys
-sys.path.append('/home/ac.cbegeman/e3sm-cryo-analysis-scripts/great_circle_calculator')
+sys.path.append('/home/ac.mhoffman/mpas/e3sm-cryo-analysis-scripts/great_circle_calculator')
+#sys.path.append('/home/ac.cbegeman/e3sm-cryo-analysis-scripts/great_circle_calculator')
 #sys.path.append('/global/homes/c/cbegeman/e3sm-cryo-analysis-scripts/great_circle_calculator')
 import os
 import csv
