@@ -41,7 +41,7 @@ from data_config import *
 
 global bad_data, bad_data2, deg2rad, lat_N, runname, runpath, meshpath, vartitle, varname, varmin, varmax, varcmap, surfvar, dvar
 
-pot_dens_reference = 1000.0
+density_anomaly_ref = 1000.0
 
 def TS_diagram(runlist,year_range,
                placename = '',lat=-9999,lon=-9999,
@@ -582,7 +582,7 @@ def tseries1(runlist, varlist, year_range,
                 data = np.divide(data,np.abs(data2))
                 yaxislabel = r'Baroclinic flux:Barotropic flux'
             if var == 'rho':
-                data = np.subtract(data, pot_dens_reference)
+                data = np.subtract(data, density_anomaly_ref)
             #else:
             #    yaxislabel = varlabel[vartitle.index(var)]
             if year_minmax:
@@ -1373,7 +1373,7 @@ def transect(pick_option, yr_incr, mo_incr, varlist,
     bathyfill = np.append(bathymax, zmax)
     bathyfill = np.append(bathyfill, bathymax)
     if var_contour == 'rho':
-        cntr_levels = np.subtract(cntr_levels, pot_dens_reference)
+        cntr_levels = np.subtract(cntr_levels, density_anomaly_ref)
     for yr in yr_incr:
         for mo in mo_incr:
             datestr = '{0:04d}-{1:02d}'.format(yr, mo)
@@ -1446,7 +1446,7 @@ def transect(pick_option, yr_incr, mo_incr, varlist,
                 #                                np.mean(temp[~mask[idx,:]]))
                 
                 if ops[varlist.index(var)] == 'sigma1':
-                    print(f'Reference pot density to {pot_dens_reference} db')
+                    print(f'Reference pot density to {density_anomaly_ref} db')
                     #P = float(ops[varlist.index(var)][:-2])
                     #_,depths = np.shape(zmesh)
                     data_import = (gsw.sigma1(f.variables[varname[vartitle.index('S')]][0, cellidx, :],
@@ -1495,7 +1495,7 @@ def transect(pick_option, yr_incr, mo_incr, varlist,
                        cntr_data[idx, kmax[idx]+1] = cntr_import[idx, kmax[idx]]
                 
                 if var == 'rho' and ops[varlist.index(var)] != 'sigma1':
-                    data_import = np.subtract(data_import, pot_dens_reference)
+                    data_import = np.subtract(data_import, density_anomaly_ref)
 
                 data = np.zeros((np.shape(zmesh)))
                 if plot_method == 'tricontourf':
@@ -1519,7 +1519,7 @@ def transect(pick_option, yr_incr, mo_incr, varlist,
                 if var_contour != '':
                     if var_contour == 'rho':
                        cntr_data[cntr_data==0] = nan
-                       cntr_data = np.subtract(cntr_data, pot_dens_reference)
+                       cntr_data = np.subtract(cntr_data, density_anomaly_ref)
                     cntr_data_masked  = cntr_data[~mask]
                 zmesh_masked = zmesh[~mask]
                 ymesh_masked = ymesh[~mask]
@@ -2253,7 +2253,7 @@ def plot_surf_var(var,yr,mo,run=['ISMF'],locname='fris',plottype = 'abs',
     else:
         print(level)
         if var == 'rho':
-            filename = filename + str(round(abs((level-pot_dens_reference)*10))) + 'c'
+            filename = filename + str(round(abs((level-density_anomaly_ref)*10))) + 'c'
         else:
             filename = filename + str(round(abs(level))) + 'c'
     filename = filename + '_' + datestr 
