@@ -22,6 +22,7 @@ lonmax = 360
 region_name = ['frisEAcoast','fris','gyre_interior',
                'trough_shelf',
                'etrough_crossshelf','trough_crossshelf','wtrough_crossshelf',
+               'trough_crossshelf_32',
                'trough_ice','M31W_W','M31W','N31W','S4E','wedwang','wedwang_c',
                'wed_pyc_west','wed_pyc_filchner_trough','wed_pyc_brunt',
                'wed_pyc_Ryan','wed_pyc_Ryan_shallow','wed_pyc_Ryan_shelf',
@@ -100,6 +101,8 @@ region_xybounds   [region_name.index('trough_crossshelf')] = [1.25e6,1.75e6],[-0
 region_coordbounds[region_name.index('trough_crossshelf')] = [327,335],[-76,-72]
 region_xybounds   [region_name.index('etrough_crossshelf')] = [1.25e6,1.75e6],[-0.75e6,-0.75e6] 
 region_coordbounds[region_name.index('etrough_crossshelf')] = [332,338],[-76,-72]
+region_xybounds   [region_name.index('trough_crossshelf_32')] = [1.25e6,1.75e6],[-0.75e6,-0.75e6]
+region_coordbounds[region_name.index('trough_crossshelf_32')] = [328, 328], [-76, -72]
 region_xybounds   [region_name.index('wed_pyc_Ryan_shallow')] = [-6.5e6,6.5e6],[-6.5e6,6.5e6] 
 region_coordbounds[region_name.index('wed_pyc_Ryan_shallow')] = [330,360],[-75,-69] 
 region_zbounds    [region_name.index('wed_pyc_Ryan_shallow')]= [-500,0]
