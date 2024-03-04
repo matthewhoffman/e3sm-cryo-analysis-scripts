@@ -12,6 +12,7 @@ from pyproj import Transformer, transform, CRS
 import matplotlib.tri as tri
 from matplotlib.colors import Normalize, TwoSlopeNorm
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+import region_config
 
 
 def dist(i1, i2, xCell, yCell):  # helper distance fn
@@ -76,14 +77,16 @@ triang.set_mask(triMask)
 
 
 colormap='YlGnBu'
-norm = Normalize(vmin=0.0, vmax=5000.0)
+norm = Normalize(vmin=0.0, vmax=4000.0)
 bathymap = ax.tripcolor(triang, data, cmap=colormap, shading='flat', transform=data_crs, norm=norm)
                                       #levels=[0.9999], colors='grey',
                                       #linestyles='solid')
 fig.colorbar(bathymap)
 
-transect_coord_lon = [327,335]
-transect_coord_lat = [-76,-72]
+#transect_coord_lon = [327,335]
+#transect_coord_lat = [-76,-72]
+transect_name = 'trough_crossshelf_32'
+transect_coord_lon, transect_coord_lat = region_config.region_coordbounds[region_config.region_name.index(transect_name)]
 transect_x, transect_y = ll_to_proj.transform(transect_coord_lon, transect_coord_lat)
 ax.plot(transect_x, transect_y, 'r', linewidth=3, transform=data_crs)
 ax.plot(transect_x, transect_y, 'ro', transform=data_crs)
