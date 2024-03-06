@@ -11,6 +11,7 @@ transect_name='trough_crossshelf_32'
 # full periods for production plots
 #runs=['CGM-DIB', 'VGM-DIB']; years = [191]; year_range=np.arange(191,201,1)
 runs=['CGM-UIB',]; years = [91]; year_range=np.arange(91,101,1)
+runs=['CGM-UIB',]; years = [51]; year_range=np.arange(51,61,1)
 
 # short periods for testing
 #runs=['CGM-DIB', 'VGM-DIB']; years = [191]; year_range=np.arange(191,192,1)
@@ -41,7 +42,7 @@ for run in runs:
                  year_range=year_range,
                  month_range=np.arange(1,13,1),
                  ops=['time_mean'],
-                 normal=True,
+                 normal=False,
                  overwrite=True,
                  var_contour='rho', cntr_levels=rho_levels,
                  cntr_label_levels=rho_levels_label,

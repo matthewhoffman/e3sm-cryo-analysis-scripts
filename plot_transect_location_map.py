@@ -77,11 +77,12 @@ triang.set_mask(triMask)
 
 
 colormap='YlGnBu'
-norm = Normalize(vmin=0.0, vmax=4000.0)
+#colormap='ocean_r'
+norm = Normalize(vmin=0.0, vmax=5000.0)
 bathymap = ax.tripcolor(triang, data, cmap=colormap, shading='flat', transform=data_crs, norm=norm)
                                       #levels=[0.9999], colors='grey',
                                       #linestyles='solid')
-fig.colorbar(bathymap)
+fig.colorbar(bathymap, extend='max')
 
 #transect_coord_lon = [327,335]
 #transect_coord_lat = [-76,-72]
